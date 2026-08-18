@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import type { MazeData } from '../game/types';
 import { extractWallSegments } from '../game/mazeGenerator';
@@ -32,6 +33,12 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
     return { verticalWalls: v, horizontalWalls: horz };
   }, [wallSegments]);
 
+  const floorTexture = useTexture('./floor.jpg');
+  floorTexture.flipY = false;
+  floorTexture.wrapS = THREE.RepeatWrapping;
+  floorTexture.wrapT = THREE.RepeatWrapping;
+  floorTexture.repeat.set(10, 10);
+
   return (
     <group>
       {/* Floor */}
@@ -40,17 +47,8 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         position={[w / 2, 0, h / 2]}
       >
         <planeGeometry args={[w, h]} />
-        <meshStandardMaterial color={FLOOR_COLOR} roughness={0.9} metalness={0.1} />
+        <meshStandardMaterial  roughness={0.9} metalness={0.1} map={floorTexture} />
       </mesh>
-
-      {/* Ceiling */}
-      {/* <mesh
-        rotation={[Math.PI / 2, 0, 0]}
-        position={[w / 2, WALL_HEIGHT, h / 2]}
-      >
-        <planeGeometry args={[w, h]} />
-        <meshStandardMaterial color={CEILING_COLOR} roughness={0.95} />
-      </mesh> */}
 
       {/* Walls */}
       <WallGroup walls={horizontalWalls} type="H" />
@@ -81,6 +79,9 @@ interface WallGroupProps {
 function WallGroup({ walls, type }: WallGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
+  const wallTexture = useTexture('./wall-1.jpg');
+  wallTexture.flipY = false;
+
   useLayoutEffect(() => {
     if (!meshRef.current) return;
     const dummy = new THREE.Object3D();
@@ -110,7 +111,7 @@ function WallGroup({ walls, type }: WallGroupProps) {
       key={`${type}-${walls.length}`}
     >
       <boxGeometry args={[1, WALL_HEIGHT, 1]} />
-      <meshStandardMaterial color={WALL_COLOR} roughness={0.8} metalness={0.15} />
+      <meshStandardMaterial roughness={0.8} metalness={0.15} map={ wallTexture } />
     </instancedMesh>
   );
 }

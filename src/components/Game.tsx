@@ -7,11 +7,6 @@ import { Player } from './SpherePlayer';
 import { HUD } from './HUD';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
 import { EYE_HEIGHT } from '../constants/player';
-import {
-  FOG_COLOR,
-  FOG_NEAR,
-  FOG_FAR,
-} from '../constants/fog';
 import { OrbitControls } from '@react-three/drei';
 
 interface MazeGameProps {
