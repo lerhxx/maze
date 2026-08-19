@@ -8,7 +8,6 @@ import {
   WALL_HEIGHT,
   WALL_THICKNESS,
 } from '../constants/wall';
-import { FLOOR_COLOR, WALL_COLOR } from '../constants/colors';
 import { EXIT_COLOR } from '../constants/flag';
 
 interface MazeEnvironmentProps {
@@ -33,11 +32,13 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
     return { verticalWalls: v, horizontalWalls: horz };
   }, [wallSegments]);
 
-  const floorTexture = useTexture('./floor.jpg');
-  floorTexture.flipY = false;
-  floorTexture.wrapS = THREE.RepeatWrapping;
-  floorTexture.wrapT = THREE.RepeatWrapping;
-  floorTexture.repeat.set(10, 10);
+  const pebble‌Texture = useTexture('./pebble‌.jpg');
+  pebble‌Texture.flipY = false;
+  pebble‌Texture.wrapS = THREE.RepeatWrapping;
+  pebble‌Texture.wrapT = THREE.RepeatWrapping;
+  pebble‌Texture.repeat.set(10, 10);
+
+  const pebble‌NormalTexture = useTexture('./pebble‌-normal.jpg');
 
   return (
     <group>
@@ -47,7 +48,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         position={[w / 2, 0, h / 2]}
       >
         <planeGeometry args={[w, h]} />
-        <meshStandardMaterial  roughness={0.9} metalness={0.1} map={floorTexture} />
+        <meshStandardMaterial  roughness={0.9} metalness={0.1} map={pebble‌Texture} normalMap={ pebble‌NormalTexture } />
       </mesh>
 
       {/* Walls */}
@@ -79,8 +80,9 @@ interface WallGroupProps {
 function WallGroup({ walls, type }: WallGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
-  const wallTexture = useTexture('./wall-1.jpg');
+  const wallTexture = useTexture('./wall-4.jpg');
   wallTexture.flipY = false;
+  const wallNormalTexture = useTexture('./wall-4-normal.jpg');
 
   useLayoutEffect(() => {
     if (!meshRef.current) return;
@@ -111,7 +113,7 @@ function WallGroup({ walls, type }: WallGroupProps) {
       key={`${type}-${walls.length}`}
     >
       <boxGeometry args={[1, WALL_HEIGHT, 1]} />
-      <meshStandardMaterial roughness={0.8} metalness={0.15} map={ wallTexture } />
+      <meshStandardMaterial roughness={0.8} metalness={0.15} map={ wallTexture } normalMap={ wallNormalTexture } />
     </instancedMesh>
   );
 }
