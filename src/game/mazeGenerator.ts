@@ -1,164 +1,98 @@
-import type { Cell, MazeData, WallSegment } from './types';
+import type { Cell, MazeData } from './types';
 import { CELL_SCALE } from '../constants/global';
 
 /**
- * Generate a perfect maze using recursive backtracking (iterative DFS).
- * Every cell is reachable from every other cell via exactly one path.
+ * 生成块式迷宫：每个单元格要么是道路，要么是墙壁。
+ *
+ * 采用「2N+1 扩展网格 + 递归回溯（迭代 DFS）」算法：
+ *   - 输入的逻辑尺寸会先被强制转成奇数（非奇数自动 +1）
+ *   - 所有单元格初始化为 wall
+ *   - 路径单元格位于奇数坐标 (1,1), (1,3), (3,1), (3,3)…
+ *   - 从 (1,1) 出发做 DFS：每次随机选一个方向（步长 2），
+ *     若邻居是 wall，则把「当前 → 邻居之间那一格」与「邻居」一并设为 path。
+ *
+ * 最终迷宫四周一圈永远是墙，起点 (1,1)，终点 (width-2, height-2)。
  */
 export function generateMaze(width: number, height: number): MazeData {
-  // Initialize all cells with all walls intact
+  // 强制奇数（外圈一圈墙 + 内部奇数坐标做路径）
+  const w = width % 2 === 0 ? width + 1 : width;
+  const h = height % 2 === 0 ? height + 1 : height;
+
+  // 初始化：所有格子都是墙
   const cells: Cell[][] = [];
-  for (let c = 0; c < width; c++) {
+  for (let c = 0; c < w; c++) {
     cells[c] = [];
-    for (let r = 0; r < height; r++) {
-      cells[c][r] = {
-        walls: { N: true, E: true, S: true, W: true },
-        visited: false,
-      };
+    for (let r = 0; r < h; r++) {
+      cells[c][r] = { type: 'wall', visited: false };
     }
   }
 
-  // Iterative DFS
+  // 迭代 DFS
   const stack: Array<[number, number]> = [];
-  const startC = 0;
-  const startR = 0;
+  const startC = 1;
+  const startR = 1;
+  cells[startC][startR].type = 'path';
   cells[startC][startR].visited = true;
   stack.push([startC, startR]);
 
+  // 四方向，步长 = 2（跳过中间那一格）
+  const dirs: Array<[number, number]> = [
+    [0, -2], // N
+    [2, 0],  // E
+    [0, 2],  // S
+    [-2, 0], // W
+  ];
+
   while (stack.length > 0) {
     const [c, r] = stack[stack.length - 1];
-    const neighbors = getUnvisitedNeighbors(c, r, cells, width, height);
 
-    if (neighbors.length === 0) {
+    // 收集未访问的、有效的「跳两格」邻居
+    const candidates: Array<[number, number, number, number]> = []; // [nc, nr, midC, midR]
+    for (const [dc, dr] of dirs) {
+      const nc = c + dc;
+      const nr = r + dr;
+      if (nc < 1 || nc >= w - 1 || nr < 1 || nr >= h - 1) continue;
+      if (cells[nc][nr].visited) continue;
+      const midC = c + dc / 2;
+      const midR = r + dr / 2;
+      candidates.push([nc, nr, midC, midR]);
+    }
+
+    if (candidates.length === 0) {
       stack.pop();
       continue;
     }
 
-    const [nc, nr, dir] = neighbors[Math.floor(Math.random() * neighbors.length)];
-
-    // Remove wall between current cell and neighbor
-    removeWall(cells[c][r], cells[nc][nr], dir);
+    // 随机选一个邻居，挖通「中间墙 + 邻居」
+    const [nc, nr, midC, midR] = candidates[Math.floor(Math.random() * candidates.length)];
+    cells[midC][midR].type = 'path';
+    cells[nc][nr].type = 'path';
     cells[nc][nr].visited = true;
     stack.push([nc, nr]);
   }
 
   return {
-    width,
-    height,
+    width: w,
+    height: h,
     cells,
-    startCol: 0,
-    startRow: 0,
-    exitCol: width - 1,
-    exitRow: height - 1,
+    startCol: 1,
+    startRow: 1,
+    exitCol: w - 2,
+    exitRow: h - 2,
   };
-}
-
-type Direction = 'N' | 'E' | 'S' | 'W';
-
-function getUnvisitedNeighbors(
-  c: number,
-  r: number,
-  cells: Cell[][],
-  w: number,
-  h: number,
-): Array<[number, number, Direction]> {
-  const result: Array<[number, number, Direction]> = [];
-  // North: r - 1
-  if (r > 0 && !cells[c][r - 1].visited) result.push([c, r - 1, 'N']);
-  // East: c + 1
-  if (c < w - 1 && !cells[c + 1][r].visited) result.push([c + 1, r, 'E']);
-  // South: r + 1
-  if (r < h - 1 && !cells[c][r + 1].visited) result.push([c, r + 1, 'S']);
-  // West: c - 1
-  if (c > 0 && !cells[c - 1][r].visited) result.push([c - 1, r, 'W']);
-  return result;
-}
-
-function removeWall(a: Cell, b: Cell, dir: Direction): void {
-  const opposite: Record<Direction, Direction> = { N: 'S', E: 'W', S: 'N', W: 'E' };
-  a.walls[dir] = false;
-  b.walls[opposite[dir]] = false;
-}
-
-/**
- * Extract all wall segments from the maze for rendering.
- * To avoid duplicates, we only collect:
- *   - North wall of every cell (horizontal segment at top)
- *   - West wall of every cell (vertical segment at left)
- *   - South wall of the last row (bottom border)
- *   - East wall of the last column (right border)
- */
-export function extractWallSegments(maze: MazeData): WallSegment[] {
-  const segments: WallSegment[] = [];
-  const { width: w, height: h, cells } = maze;
-
-  for (let c = 0; c < w; c++) {
-    for (let r = 0; r < h; r++) {
-      const cell = cells[c][r];
-      // North wall: horizontal segment from (c, r) to (c+1, r)
-      if (cell.walls.N) {
-        segments.push({ x1: c, z1: r, x2: c + 1, z2: r, orientation: 'H' });
-      }
-      // West wall: vertical segment from (c, r) to (c, r+1)
-      if (cell.walls.W) {
-        segments.push({ x1: c, z1: r, x2: c, z2: r + 1, orientation: 'V' });
-      }
-    }
-  }
-
-  // South border (bottom wall of last row)
-  for (let c = 0; c < w; c++) {
-    if (cells[c][h - 1].walls.S) {
-      segments.push({ x1: c, z1: h, x2: c + 1, z2: h, orientation: 'H' });
-    }
-  }
-  // East border (right wall of last column)
-  for (let r = 0; r < h; r++) {
-    if (cells[w - 1][r].walls.E) {
-      segments.push({ x1: w, z1: r, x2: w, z2: r + 1, orientation: 'V' });
-    }
-  }
-
-  return segments;
 }
 
 // ===== Collision Detection =====
 
 /**
- * Distance from point (px, pz) to line segment (x1,z1)-(x2,z2).
- */
-function distToSegment(
-  px: number,
-  pz: number,
-  x1: number,
-  z1: number,
-  x2: number,
-  z2: number,
-): number {
-  const dx = x2 - x1;
-  const dz = z2 - z1;
-  const lenSq = dx * dx + dz * dz;
-  if (lenSq === 0) {
-    const ddx = px - x1;
-    const ddz = pz - z1;
-    return Math.sqrt(ddx * ddx + ddz * ddz);
-  }
-  let t = ((px - x1) * dx + (pz - z1) * dz) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  const cx = x1 + t * dx;
-  const cz = z1 + t * dz;
-  const ddx = px - cx;
-  const ddz = pz - cz;
-  return Math.sqrt(ddx * ddx + ddz * ddz);
-}
-
-/**
- * Check if a position is valid (not colliding with any wall).
- * Only checks walls near the player for efficiency.
+ * 检查位置 (px, pz)（世界单位）是否合法（未与任何墙壁单元格碰撞）。
  *
- * NOTE: `px`, `pz`, `radius` are in world units. Internally we convert to
- * cell space (where each cell is 1×1) so the maze data structure stays
- * unscaled — only rendering scales cells by CELL_SCALE.
+ * 采用「世界 → cell 空间转换 + AABB 占格检测」：
+ *   1) 把世界坐标与半径都除以 CELL_SCALE 转成 cell 空间
+ *   2) 玩家作为正方形 AABB，覆盖的每个 cell 都检查
+ *   3) 越界 或 落到 type === 'wall' 的格 → 不允许
+ *
+ * NOTE: 调用方负责把移动拆成小步迭代（防止高速跨格穿透）。
  */
 export function canMove(
   px: number,
@@ -166,36 +100,23 @@ export function canMove(
   radius: number,
   maze: MazeData,
 ): boolean {
-  // Convert world → cell space
+  // 世界 → cell 空间
   const cellPx = px / CELL_SCALE;
   const cellPz = pz / CELL_SCALE;
   const cellRadius = radius / CELL_SCALE;
 
-  const col = Math.floor(cellPx);
-  const row = Math.floor(cellPz);
+  const minCol = Math.floor(cellPx - cellRadius);
+  const maxCol = Math.floor(cellPx + cellRadius);
+  const minRow = Math.floor(cellPz - cellRadius);
+  const maxRow = Math.floor(cellPz + cellRadius);
 
-  // Check the 3×3 neighborhood of cells around the player
-  for (let dc = -1; dc <= 1; dc++) {
-    for (let dr = -1; dr <= 1; dr++) {
-      const c = col + dc;
-      const r = row + dr;
-      if (c < 0 || c >= maze.width || r < 0 || r >= maze.height) continue;
-      const cell = maze.cells[c][r];
-
-      // North wall: segment (c, r) → (c+1, r)
-      if (cell.walls.N && distToSegment(cellPx, cellPz, c, r, c + 1, r) < cellRadius) return false;
-      // South wall: segment (c, r+1) → (c+1, r+1)
-      if (cell.walls.S && distToSegment(cellPx, cellPz, c, r + 1, c + 1, r + 1) < cellRadius) return false;
-      // West wall: segment (c, r) → (c, r+1)
-      if (cell.walls.W && distToSegment(cellPx, cellPz, c, r, c, r + 1) < cellRadius) return false;
-      // East wall: segment (c+1, r) → (c+1, r+1)
-      if (cell.walls.E && distToSegment(cellPx, cellPz, c + 1, r, c + 1, r + 1) < cellRadius) return false;
+  for (let c = minCol; c <= maxCol; c++) {
+    for (let r = minRow; r <= maxRow; r++) {
+      // 越界视为墙
+      if (c < 0 || c >= maze.width || r < 0 || r >= maze.height) return false;
+      if (maze.cells[c][r].type === 'wall') return false;
     }
   }
-
-  // Also check maze borders (in cell space)
-  if (cellPx < cellRadius || cellPz < cellRadius) return false;
-  if (cellPx > maze.width - cellRadius || cellPz > maze.height - cellRadius) return false;
 
   return true;
 }

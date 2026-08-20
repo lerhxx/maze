@@ -11,8 +11,12 @@ import {
   MOUSE_SENSITIVITY,
 } from '../constants/player';
 import { TORCH_INTENSITY } from '../constants/light';
-import { WALL_THICKNESS } from '../constants/wall';
 import { CELL_SCALE } from '../constants/global';
+
+// 防穿墙：每步最大位移 = 0.2 个单元格（世界单位）
+const MAX_STEP = 0.2 * CELL_SCALE;
+// 走到墙边时留一点 epsilon，防止贴墙抖动
+const MOVE_EPSILON = 0.05;
 
 
 interface PlayerProps {
@@ -145,17 +149,32 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       dx = (dx / len) * MOVE_SPEED * dt;
       dz = (dz / len) * MOVE_SPEED * dt;
 
-      // Axis-separated movement for wall sliding
-      const newX = posRef.current.x + dx;
-      console.log(`posRef.current.x ${posRef.current.x}, newX ${newX}`, canMove(newX, posRef.current.z, PLAYER_RADIUS, maze))
-      if (canMove(newX, posRef.current.z, PLAYER_RADIUS + WALL_THICKNESS + 0.1, maze)) {
-        posRef.current.x = newX;
+      // 把整帧位移拆成小步迭代（防高速跨格穿墙）。
+      // 每轴分别推进，遇到墙就停在该轴（保留另一轴继续 → 实现滑墙）。
+      const radius = PLAYER_RADIUS + MOVE_EPSILON + 0.05;
+
+      // --- X 轴 ---
+      const stepCountX = Math.ceil(Math.abs(dx) / MAX_STEP);
+      const stepX = dx / stepCountX;
+      for (let i = 0; i < stepCountX; i++) {
+        const next = posRef.current.x + stepX;
+        if (canMove(next, posRef.current.z, radius, maze)) {
+          posRef.current.x = next;
+        } else {
+          break;
+        }
       }
 
-      const newZ = posRef.current.z + dz;
-      console.log(`posRef.current.z ${posRef.current.z}, newZ ${newZ}`, canMove(posRef.current.x, newZ, PLAYER_RADIUS, maze))
-      if (canMove(posRef.current.x, newZ, PLAYER_RADIUS + WALL_THICKNESS + 0.1, maze)) {
-        posRef.current.z = newZ;
+      // --- Z 轴 ---
+      const stepCountZ = Math.ceil(Math.abs(dz) / MAX_STEP);
+      const stepZ = dz / stepCountZ;
+      for (let i = 0; i < stepCountZ; i++) {
+        const next = posRef.current.z + stepZ;
+        if (canMove(posRef.current.x, next, radius, maze)) {
+          posRef.current.z = next;
+        } else {
+          break;
+        }
       }
     }
 

@@ -22,7 +22,7 @@ function App() {
     hard: null,
   });
 
-  const startGame = (diff: Difficulty = 'medium') => {
+  const startGame = (diff: Difficulty = 'easy') => {
     const { w, h } = DIFFICULTY_SIZES[diff];
     setDifficulty(diff);
     setMaze(generateMaze(w, h));

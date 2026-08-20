@@ -35,17 +35,18 @@ export const EXIT_LIGHT_INTENSITY = 2;
 export const EXIT_LIGHT_DISTANCE = 5;
 
 // ===== Difficulty → Maze Size =====
+// 注：实际网格尺寸为「2N+1 扩展」后的奇数尺寸，每个单元格要么是墙要么是路。
 
 export const DIFFICULTY_SIZES: Record<Difficulty, { w: number; h: number }> = {
-  easy: { w: 8, h: 8 },
-  medium: { w: 12, h: 12 },
-  hard: { w: 16, h: 16 },
+  easy: { w: 17, h: 17 },
+  medium: { w: 25, h: 25 },
+  hard: { w: 33, h: 33 },
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: '简单 (8×8)',
-  medium: '中等 (12×12)',
-  hard: '困难 (16×16)',
+  easy: '简单 (17×17)',
+  medium: '中等 (25×25)',
+  hard: '困难 (33×33)',
 };
 
 // ===== Colors =====

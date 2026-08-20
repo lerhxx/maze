@@ -3,10 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import type { MazeData } from '../game/types';
-import { extractWallSegments } from '../game/mazeGenerator';
 import {
   WALL_HEIGHT,
-  WALL_THICKNESS,
 } from '../constants/wall';
 import { EXIT_COLOR } from '../constants/flag';
 import { CELL_SCALE } from '../constants/global';
@@ -16,22 +14,20 @@ interface MazeEnvironmentProps {
 }
 
 export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
-  const wallSegments = useMemo(() => extractWallSegments(maze), [maze]);
   const { width: w, height: h } = maze;
 
-  // Build wall geometries — group into vertical and horizontal for instanced rendering
-  const { verticalWalls, horizontalWalls } = useMemo(() => {
-    const v: Array<{ x: number; z: number; len: number }> = [];
-    const horz: Array<{ x: number; z: number; len: number }> = [];
-    for (const seg of wallSegments) {
-      if (seg.orientation === 'V') {
-        v.push({ x: seg.x1, z: seg.z1, len: seg.z2 - seg.z1 });
-      } else {
-        horz.push({ x: seg.x1, z: seg.z1, len: seg.x2 - seg.x1 });
+  // 收集所有「墙壁单元格」的坐标，用单个 InstancedMesh 渲染
+  const wallCells = useMemo(() => {
+    const list: Array<{ c: number; r: number }> = [];
+    for (let c = 0; c < w; c++) {
+      for (let r = 0; r < h; r++) {
+        if (maze.cells[c][r].type === 'wall') {
+          list.push({ c, r });
+        }
       }
     }
-    return { verticalWalls: v, horizontalWalls: horz };
-  }, [wallSegments]);
+    return list;
+  }, [maze]);
 
   const pebble‌Texture = useTexture('./pebble‌.jpg');
   pebble‌Texture.flipY = false;
@@ -52,9 +48,8 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         <meshStandardMaterial  roughness={0.9} metalness={0.1} map={pebble‌Texture} normalMap={ pebble‌NormalTexture } />
       </mesh>
 
-      {/* Walls */}
-      <WallGroup walls={horizontalWalls} type="H" />
-      <WallGroup walls={verticalWalls} type="V" />
+      {/* Walls —— 每个墙壁单元格渲染为 1×WALL_HEIGHT×1 的 box（再整体按 CELL_SCALE 缩放） */}
+      <WallCells cells={wallCells} />
 
       {/* Exit Portal */}
       <ExitPortal x={(maze.exitCol + 0.5) * CELL_SCALE} z={(maze.exitRow + 0.5) * CELL_SCALE} />
@@ -73,12 +68,11 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
 
 // ===== Wall rendering using InstancedMesh =====
 
-interface WallGroupProps {
-  walls: Array<{ x: number; z: number; len: number }>;
-  type: 'V' | 'H';
+interface WallCellsProps {
+  cells: Array<{ c: number; r: number }>;
 }
 
-function WallGroup({ walls, type }: WallGroupProps) {
+function WallCells({ cells }: WallCellsProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const wallTexture = useTexture('./wall-4.jpg');
@@ -88,30 +82,24 @@ function WallGroup({ walls, type }: WallGroupProps) {
   useLayoutEffect(() => {
     if (!meshRef.current) return;
     const dummy = new THREE.Object3D();
-    for (let i = 0; i < walls.length; i++) {
-      const wall = walls[i];
-      if (type === 'H') {
-        // Horizontal wall: along X axis, at z = wall.z
-        dummy.position.set((wall.x + wall.len / 2) * CELL_SCALE, WALL_HEIGHT / 2, wall.z * CELL_SCALE);
-        dummy.scale.set(wall.len * CELL_SCALE, 1, WALL_THICKNESS);
-      } else {
-        // Vertical wall: along Z axis, at x = wall.x
-        dummy.position.set(wall.x * CELL_SCALE, WALL_HEIGHT / 2, (wall.z + wall.len / 2) * CELL_SCALE);
-        dummy.scale.set(WALL_THICKNESS, 1, wall.len * CELL_SCALE);
-      }
+    for (let i = 0; i < cells.length; i++) {
+      const { c, r } = cells[i];
+      // 整格 box：位置在格子中心，scale 等于一个单元格的世界尺寸
+      dummy.position.set((c + 0.5) * CELL_SCALE, WALL_HEIGHT / 2, (r + 0.5) * CELL_SCALE);
+      dummy.scale.set(CELL_SCALE, 1, CELL_SCALE);
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [walls, type]);
+  }, [cells]);
 
-  if (walls.length === 0) return null;
+  if (cells.length === 0) return null;
 
   return (
     <instancedMesh
       ref={meshRef}
-      args={[undefined, undefined, walls.length]}
-      key={`${type}-${walls.length}`}
+      args={[undefined, undefined, cells.length]}
+      key={cells.length}
     >
       <boxGeometry args={[1, WALL_HEIGHT, 1]} />
       <meshStandardMaterial roughness={0.8} metalness={0.15} map={ wallTexture } normalMap={ wallNormalTexture } />

@@ -30,10 +30,12 @@ export function Minimap({ gameRef }: MinimapProps) {
       ctx.fillStyle = '#0a0a12';
       ctx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
 
-      // Draw visited cells background
+      // Draw visited cells background（只画道路单元格）
       ctx.fillStyle = '#1a1a2e';
       for (const key of visitedCells) {
         const [c, r] = key.split(',').map(Number);
+        const cell = maze.cells[c]?.[r];
+        if (!cell || cell.type !== 'path') continue;
         ctx.fillRect(
           offsetX + c * cellSize,
           offsetY + r * cellSize,
@@ -42,38 +44,48 @@ export function Minimap({ gameRef }: MinimapProps) {
         );
       }
 
-      // Draw walls of visited cells only
+      // 用线段描出墙壁边：对每个已访问的 path 单元格，
+      // 若其四方向相邻格是墙或越界，则画那条边作为线段
       ctx.strokeStyle = '#6a7a9e';
       ctx.lineWidth = 1.5;
       ctx.lineCap = 'round';
+      ctx.beginPath();
+
+      const isWallOrOOB = (c: number, r: number): boolean => {
+        if (c < 0 || c >= w || r < 0 || r >= h) return true;
+        return maze.cells[c][r].type === 'wall';
+      };
 
       for (const key of visitedCells) {
         const [c, r] = key.split(',').map(Number);
         const cell = maze.cells[c]?.[r];
-        if (!cell) continue;
+        if (!cell || cell.type !== 'path') continue;
 
         const x = offsetX + c * cellSize;
         const y = offsetY + r * cellSize;
 
-        ctx.beginPath();
-        if (cell.walls.N) {
+        // 北边：相邻 (c, r-1)
+        if (isWallOrOOB(c, r - 1)) {
           ctx.moveTo(x, y);
           ctx.lineTo(x + cellSize, y);
         }
-        if (cell.walls.S) {
+        // 南边：相邻 (c, r+1)
+        if (isWallOrOOB(c, r + 1)) {
           ctx.moveTo(x, y + cellSize);
           ctx.lineTo(x + cellSize, y + cellSize);
         }
-        if (cell.walls.W) {
+        // 西边：相邻 (c-1, r)
+        if (isWallOrOOB(c - 1, r)) {
           ctx.moveTo(x, y);
           ctx.lineTo(x, y + cellSize);
         }
-        if (cell.walls.E) {
+        // 东边：相邻 (c+1, r)
+        if (isWallOrOOB(c + 1, r)) {
           ctx.moveTo(x + cellSize, y);
           ctx.lineTo(x + cellSize, y + cellSize);
         }
-        ctx.stroke();
       }
+      ctx.stroke();
 
       // Draw start marker
       ctx.fillStyle = '#ff6644';

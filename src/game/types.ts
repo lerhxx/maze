@@ -1,20 +1,18 @@
 // ===== Maze Data Types =====
 
-export interface CellWalls {
-  N: boolean;
-  E: boolean;
-  S: boolean;
-  W: boolean;
-}
+/**
+ * 块式迷宫：每个单元格要么是道路，要么是墙壁。
+ */
+export type CellType = 'wall' | 'path';
 
 export interface Cell {
-  walls: CellWalls;
-  visited: boolean; // used during generation
+  type: CellType;
+  visited: boolean; // 用于迷宫生成时的 DFS
 }
 
 export interface MazeData {
-  width: number;
-  height: number;
+  width: number; // 扩展后实际网格宽度（奇数）
+  height: number; // 扩展后实际网格高度（奇数）
   cells: Cell[][]; // cells[col][row]
   startCol: number;
   startRow: number;
@@ -35,15 +33,4 @@ export interface GameRef {
   visitedCells: Set<string>;
   maze: MazeData;
   pointerLocked: boolean;
-}
-
-// ===== Wall Segment (for collision & rendering) =====
-
-export interface WallSegment {
-  x1: number;
-  z1: number;
-  x2: number;
-  z2: number;
-  // 'V' = vertical wall (along Z axis), 'H' = horizontal wall (along X axis)
-  orientation: 'V' | 'H';
 }
