@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { GameRef } from '../game/types';
 import { EXIT_COLOR } from '../game/constants';
+import { CELL_SCALE } from '../constants/global';
 
 interface MinimapProps {
   gameRef: React.MutableRefObject<GameRef>;
@@ -95,9 +96,9 @@ export function Minimap({ gameRef }: MinimapProps) {
       );
       ctx.shadowBlur = 0;
 
-      // Draw player
-      const px = offsetX + playerX * cellSize;
-      const pz = offsetY + playerZ * cellSize;
+      // Draw player (playerX/Z are in world units; convert to cell space)
+      const px = offsetX + (playerX / CELL_SCALE) * cellSize;
+      const pz = offsetY + (playerZ / CELL_SCALE) * cellSize;
 
       // Vision cone
       ctx.fillStyle = 'rgba(255, 204, 119, 0.12)';

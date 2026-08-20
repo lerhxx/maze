@@ -7,6 +7,7 @@ import { Player } from './SpherePlayer';
 import { HUD } from './HUD';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
 import { EYE_HEIGHT } from '../constants/player';
+import { CELL_SCALE } from '../constants/global';
 import { OrbitControls } from '@react-three/drei';
 
 interface MazeGameProps {
@@ -20,8 +21,8 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
   const startRef = useRef<number>(0);
 
   const gameRef = useRef<GameRef>({
-    playerX: maze.startCol + 0.5,
-    playerZ: maze.startRow + 0.5,
+    playerX: (maze.startCol + 0.5) * CELL_SCALE,
+    playerZ: (maze.startRow + 0.5) * CELL_SCALE,
     playerYaw: 0,
     visitedCells: new Set([`${maze.startCol},${maze.startRow}`]),
     maze,
@@ -32,7 +33,6 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
   useEffect(() => {
     startRef.current = Date.now();
     setStartTime(startRef.current);
-    console.log('maze', maze)
   }, []);
 
   const handleWin = useCallback(() => {
@@ -53,7 +53,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
           fov: 75,
           near: 0.1,
           far: 50,
-          position: [maze.startCol - 5, EYE_HEIGHT, maze.startRow + 0.5],
+          position: [(maze.startCol + 0.5) * CELL_SCALE - 5, EYE_HEIGHT, (maze.startRow + 0.5) * CELL_SCALE],
         }}
         className="game-canvas"
       >

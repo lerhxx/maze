@@ -1,4 +1,5 @@
 import type { Cell, MazeData, WallSegment } from './types';
+import { CELL_SCALE } from '../constants/global';
 
 /**
  * Generate a perfect maze using recursive backtracking (iterative DFS).
@@ -154,6 +155,10 @@ function distToSegment(
 /**
  * Check if a position is valid (not colliding with any wall).
  * Only checks walls near the player for efficiency.
+ *
+ * NOTE: `px`, `pz`, `radius` are in world units. Internally we convert to
+ * cell space (where each cell is 1×1) so the maze data structure stays
+ * unscaled — only rendering scales cells by CELL_SCALE.
  */
 export function canMove(
   px: number,
@@ -161,8 +166,13 @@ export function canMove(
   radius: number,
   maze: MazeData,
 ): boolean {
-  const col = Math.floor(px);
-  const row = Math.floor(pz);
+  // Convert world → cell space
+  const cellPx = px / CELL_SCALE;
+  const cellPz = pz / CELL_SCALE;
+  const cellRadius = radius / CELL_SCALE;
+
+  const col = Math.floor(cellPx);
+  const row = Math.floor(cellPz);
 
   // Check the 3×3 neighborhood of cells around the player
   for (let dc = -1; dc <= 1; dc++) {
@@ -173,19 +183,19 @@ export function canMove(
       const cell = maze.cells[c][r];
 
       // North wall: segment (c, r) → (c+1, r)
-      if (cell.walls.N && distToSegment(px, pz, c, r, c + 1, r) < radius) return false;
+      if (cell.walls.N && distToSegment(cellPx, cellPz, c, r, c + 1, r) < cellRadius) return false;
       // South wall: segment (c, r+1) → (c+1, r+1)
-      if (cell.walls.S && distToSegment(px, pz, c, r + 1, c + 1, r + 1) < radius) return false;
+      if (cell.walls.S && distToSegment(cellPx, cellPz, c, r + 1, c + 1, r + 1) < cellRadius) return false;
       // West wall: segment (c, r) → (c, r+1)
-      if (cell.walls.W && distToSegment(px, pz, c, r, c, r + 1) < radius) return false;
+      if (cell.walls.W && distToSegment(cellPx, cellPz, c, r, c, r + 1) < cellRadius) return false;
       // East wall: segment (c+1, r) → (c+1, r+1)
-      if (cell.walls.E && distToSegment(px, pz, c + 1, r, c + 1, r + 1) < radius) return false;
+      if (cell.walls.E && distToSegment(cellPx, cellPz, c + 1, r, c + 1, r + 1) < cellRadius) return false;
     }
   }
 
-  // Also check maze borders
-  if (px < radius || pz < radius) return false;
-  if (px > maze.width - radius || pz > maze.height - radius) return false;
+  // Also check maze borders (in cell space)
+  if (cellPx < cellRadius || cellPz < cellRadius) return false;
+  if (cellPx > maze.width - cellRadius || cellPz > maze.height - cellRadius) return false;
 
   return true;
 }

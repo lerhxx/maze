@@ -22,7 +22,7 @@ function App() {
     hard: null,
   });
 
-  const startGame = (diff: Difficulty = 'easy') => {
+  const startGame = (diff: Difficulty = 'medium') => {
     const { w, h } = DIFFICULTY_SIZES[diff];
     setDifficulty(diff);
     setMaze(generateMaze(w, h));
@@ -52,9 +52,9 @@ function App() {
     setResult(null);
   };
 
-  // useEffect(() => {
-  //   startGame();
-  // }, [])
+  useEffect(() => {
+    startGame();
+  }, [])
 
   return (
     <div className="app">

@@ -9,6 +9,7 @@ import {
   WALL_THICKNESS,
 } from '../constants/wall';
 import { EXIT_COLOR } from '../constants/flag';
+import { CELL_SCALE } from '../constants/global';
 
 interface MazeEnvironmentProps {
   maze: MazeData;
@@ -45,9 +46,9 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       {/* Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[w / 2, 0, h / 2]}
+        position={[(w / 2) * CELL_SCALE, 0, (h / 2) * CELL_SCALE]}
       >
-        <planeGeometry args={[w, h]} />
+        <planeGeometry args={[w * CELL_SCALE, h * CELL_SCALE]} />
         <meshStandardMaterial  roughness={0.9} metalness={0.1} map={pebble‌Texture} normalMap={ pebble‌NormalTexture } />
       </mesh>
 
@@ -56,12 +57,12 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       <WallGroup walls={verticalWalls} type="V" />
 
       {/* Exit Portal */}
-      <ExitPortal x={maze.exitCol + 0.5} z={maze.exitRow + 0.5} />
+      <ExitPortal x={(maze.exitCol + 0.5) * CELL_SCALE} z={(maze.exitRow + 0.5) * CELL_SCALE} />
 
       {/* Start marker (subtle) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[maze.startCol + 0.5, 0.01, maze.startRow + 0.5]}
+        position={[(maze.startCol + 0.5) * CELL_SCALE, 0.01, (maze.startRow + 0.5) * CELL_SCALE]}
       >
         <circleGeometry args={[0.3, 24]} />
         <meshStandardMaterial color="#ff6644" emissive="#ff6644" emissiveIntensity={0.5} transparent opacity={0.6} />
@@ -91,12 +92,12 @@ function WallGroup({ walls, type }: WallGroupProps) {
       const wall = walls[i];
       if (type === 'H') {
         // Horizontal wall: along X axis, at z = wall.z
-        dummy.position.set(wall.x + wall.len / 2, WALL_HEIGHT / 2, wall.z);
-        dummy.scale.set(wall.len, 1, WALL_THICKNESS);
+        dummy.position.set((wall.x + wall.len / 2) * CELL_SCALE, WALL_HEIGHT / 2, wall.z * CELL_SCALE);
+        dummy.scale.set(wall.len * CELL_SCALE, 1, WALL_THICKNESS);
       } else {
         // Vertical wall: along Z axis, at x = wall.x
-        dummy.position.set(wall.x, WALL_HEIGHT / 2, wall.z + wall.len / 2);
-        dummy.scale.set(WALL_THICKNESS, 1, wall.len);
+        dummy.position.set(wall.x * CELL_SCALE, WALL_HEIGHT / 2, (wall.z + wall.len / 2) * CELL_SCALE);
+        dummy.scale.set(WALL_THICKNESS, 1, wall.len * CELL_SCALE);
       }
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);

@@ -12,6 +12,7 @@ import {
 } from '../constants/player';
 import { TORCH_INTENSITY } from '../constants/light';
 import { WALL_THICKNESS } from '../constants/wall';
+import { CELL_SCALE } from '../constants/global';
 
 
 interface PlayerProps {
@@ -25,14 +26,14 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   const keysRef = useRef<Set<string>>(new Set());
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
-  const posRef = useRef({ x: maze.startCol + 0.5, z: maze.startRow + 0.5 });
+  const posRef = useRef({ x: (maze.startCol + 0.5) * CELL_SCALE, z: (maze.startRow + 0.5) * CELL_SCALE });
   const isLockedRef = useRef(false);
   const torchRef = useRef<THREE.PointLight>(null);
   const wonRef = useRef(false);
 
   // Reset when maze changes
   useEffect(() => {
-    posRef.current = { x: maze.startCol + 0.5, z: maze.startRow + 0.5 };
+    posRef.current = { x: (maze.startCol + 0.5) * CELL_SCALE, z: (maze.startRow + 0.5) * CELL_SCALE };
     yawRef.current = 0;
     pitchRef.current = 0;
     wonRef.current = false;
@@ -179,8 +180,8 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
     gameRef.current.playerYaw = yawRef.current;
 
     // Track visited cells for fog of war
-    const cellCol = Math.floor(posRef.current.x);
-    const cellRow = Math.floor(posRef.current.z);
+    const cellCol = Math.floor(posRef.current.x / CELL_SCALE);
+    const cellRow = Math.floor(posRef.current.z / CELL_SCALE);
     const cellKey = `${cellCol},${cellRow}`;
     if (!gameRef.current.visitedCells.has(cellKey)) {
       gameRef.current.visitedCells.add(cellKey);

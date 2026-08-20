@@ -1,0 +1,1 @@
+export const CELL_SCALE = 1.5;
