@@ -11,7 +11,7 @@ import {
   MOUSE_SENSITIVITY,
 } from '../constants/player';
 import { TORCH_INTENSITY } from '../constants/light';
-import { CELL_SCALE } from '../constants/global';
+import { CELL_SCALE, USE_MOUSE } from '../constants/global';
 
 // 防穿墙：每步最大位移 = 0.2 个单元格（世界单位）
 const MAX_STEP = 0.2 * CELL_SCALE;
@@ -85,15 +85,16 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       if (!isLockedRef.current) return;
       yawRef.current -= e.movementX * MOUSE_SENSITIVITY;
       pitchRef.current -= e.movementY * MOUSE_SENSITIVITY;
-      console.log('yawRef.current', yawRef.current)
       // Clamp pitch
       const maxPitch = Math.PI / 2 - 0.05;
       pitchRef.current = Math.max(-maxPitch, Math.min(maxPitch, pitchRef.current));
     };
 
-    canvas.addEventListener('click', handleClick);
-    document.addEventListener('pointerlockchange', handleLockChange);
-    document.addEventListener('mousemove', handleMouseMove);
+    if (USE_MOUSE) {
+      canvas.addEventListener('click', handleClick);
+      document.addEventListener('pointerlockchange', handleLockChange);
+      document.addEventListener('mousemove', handleMouseMove);
+    }
 
     return () => {
       canvas.removeEventListener('click', handleClick);
@@ -126,7 +127,6 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
     const rightZ = -Math.sin(yawRef.current);
 
     if (keysRef.current.has('KeyW')) {
-      console.log('forwardX', forwardX)
       dx += forwardX;
       dz += forwardZ;
     }
@@ -182,14 +182,17 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
 
     // --- Update torch light ---
     if (torchRef.current) {
-      torchRef.current.position.set(posRef.current.x, EYE_HEIGHT + 0.2, posRef.current.z);
+      torchRef.current.position.set(posRef.current.x, EYE_HEIGHT, posRef.current.z);
       // Slight flicker for atmosphere
       const flicker = 1 + Math.sin(performance.now() * 0.012) * 0.06 + Math.sin(performance.now() * 0.03) * 0.03;
       torchRef.current.intensity = TORCH_INTENSITY * flicker;
-      // --- Update camera ---å
-      camera.position.set(posRef.current.x, EYE_HEIGHT, posRef.current.z);
-      camera.rotation.set(pitchRef.current, yawRef.current, 0, 'YXZ');
-      // camera.lookAt(torchRef.current.position )
+
+      if (USE_MOUSE) {
+        // --- Update camera ---å
+        camera.position.set(posRef.current.x, EYE_HEIGHT, posRef.current.z);
+        camera.rotation.set(pitchRef.current, yawRef.current, 0, 'YXZ');
+        // camera.lookAt(torchRef.current.position )
+      }
     }
 
 

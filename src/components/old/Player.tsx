@@ -120,7 +120,6 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
     const rightZ = -Math.sin(yawRef.current);
 
     if (keysRef.current.has('KeyW')) {
-      console.log(`forwardX ${forwardX}; forwardZ ${forwardZ}`)
       dx += forwardX;
       dz += forwardZ;
     }

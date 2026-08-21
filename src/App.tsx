@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Difficulty, MazeData } from './game/types';
 import { generateMaze } from './game/mazeGenerator';
-import { DIFFICULTY_SIZES, DIFFICULTY_LABELS } from './game/constants';
+import { DIFFICULTY_SIZES, DIFFICULTY_LABELS } from './constants/global';
 import { MazeGame } from './components/Game';
 // import { MazeGame } from './components/old/MazeGame';
 import './App.css';
@@ -26,6 +26,7 @@ function App() {
     const { w, h } = DIFFICULTY_SIZES[diff];
     setDifficulty(diff);
     setMaze(generateMaze(w, h));
+    console.log('maze', maze)
     setStatus('playing');
   };
 

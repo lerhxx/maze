@@ -18,6 +18,7 @@ export interface MazeData {
   startRow: number;
   exitCol: number;
   exitRow: number;
+  solutionPath: Array<[number, number]>; // 起点→终点的路径（cell 坐标序列）
 }
 
 // ===== Game State =====

@@ -9,6 +9,7 @@ import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
 import { EYE_HEIGHT } from '../constants/player';
 import { CELL_SCALE } from '../constants/global';
 import { OrbitControls } from '@react-three/drei';
+import { Perf } from 'r3f-perf';
 
 interface MazeGameProps {
   maze: MazeData;
@@ -53,10 +54,11 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
           fov: 75,
           near: 0.1,
           far: 50,
-          position: [(maze.startCol + 0.5) * CELL_SCALE - 5, EYE_HEIGHT, (maze.startRow + 0.5) * CELL_SCALE],
+          position: [(maze.startCol + 0.5) * CELL_SCALE, EYE_HEIGHT, (maze.startRow + 0.5) * CELL_SCALE],
         }}
         className="game-canvas"
       >
+        <Perf position="top-left" />
         <OrbitControls />
         <SceneContent maze={maze} gameRef={gameRef} onWin={handleWin} />
       </Canvas>
@@ -64,7 +66,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
       <HUD gameRef={gameRef} isPlaying={!won} startTime={startTime} />
     
       {/* Click-to-lock hint */}
-      <ClickToPlayHint gameRef={gameRef} />
+      {/* <ClickToPlayHint gameRef={gameRef} /> */}
 
     </div>
   );

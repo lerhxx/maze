@@ -31,6 +31,9 @@ export function generateMaze(width: number, height: number): MazeData {
   const stack: Array<[number, number]> = [];
   const startC = 1;
   const startR = 1;
+  const exitC = w - 2;
+  const exitR = h - 2;
+  let solutionPath: Array<[number, number]> = [];
   cells[startC][startR].type = 'path';
   cells[startC][startR].visited = true;
   stack.push([startC, startR]);
@@ -69,16 +72,31 @@ export function generateMaze(width: number, height: number): MazeData {
     cells[nc][nr].type = 'path';
     cells[nc][nr].visited = true;
     stack.push([nc, nr]);
-  }
 
+    // DFS 栈本身就是「起点→当前格」的路径；首次到达终点时记录
+    if (solutionPath.length === 0 && nc === exitC && nr === exitR) {
+      // 栈只含步长 2 的奇数坐标格，需补上相邻两格之间的偶数 mid 格
+      solutionPath = [];
+      for (let i = 0; i < stack.length; i++) {
+        const [pc, pr] = stack[i];
+        solutionPath.push([pc, pr]);
+        if (i < stack.length - 1) {
+          const [nxc, nxr] = stack[i + 1];
+          solutionPath.push([(pc + nxc) / 2, (pr + nxr) / 2]);
+        }
+      }
+    }
+  }
+  console.log('solutionPath', solutionPath)
   return {
     width: w,
     height: h,
     cells,
-    startCol: 1,
-    startRow: 1,
-    exitCol: w - 2,
-    exitRow: h - 2,
+    startCol: startC,
+    startRow: startR,
+    exitCol: exitC,
+    exitRow: exitR,
+    solutionPath,
   };
 }
 
