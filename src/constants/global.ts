@@ -16,4 +16,4 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   hard: '困难',
 };
 
-export const USE_MOUSE = false;
+export const USE_MOUSE = true;

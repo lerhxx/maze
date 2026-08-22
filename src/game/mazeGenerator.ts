@@ -87,7 +87,7 @@ export function generateMaze(width: number, height: number): MazeData {
       }
     }
   }
-  console.log('solutionPath', solutionPath)
+
   return {
     width: w,
     height: h,
