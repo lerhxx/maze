@@ -94,7 +94,7 @@ export function Shopee({
 
       <Envelope
         position={[0.5, 0, 0.5]}
-        size={size * 0.1}
+        size={size * 0.35}
         animated
         showBubble={showBubble}
         castShadow={castShadow}
