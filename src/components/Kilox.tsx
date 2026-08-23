@@ -1,25 +1,18 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { CELL_SCALE } from '../constants/global';
+import { Envelope } from './Envelope';
+import {
+  sceneState,
+  useSceneBubble,
+  type DescriptionId,
+} from '../state/sceneStore';
 
 const FACTORY_URL = '/model/factory.glb';
 const ROBOT_URL = '/model/robot.glb';
 
-/**
- * Killox: 加载 factory.glb 和 robot.glb。
- * factory 居中展示，robot 围绕 factory 慢转 + 上下轻微浮动。
- *
- * Props:
- *   - position: [x, y, z] — 世界坐标
- *   - size?: number — factory 归一化后的最大边长（默认 1）
- *   - rotationY?: number — 整体绕 Y 轴旋转（弧度）
- *   - castShadow? / receiveShadow?: boolean
- *   - orbitRadius?: number — robot 轨道半径（默认 = size * 0.6）
- *   - orbitSpeed?: number — 公转速度（默认 0.5 rad/s）
- *   - bobAmplitude?: number — 上下浮动幅度（默认 size * 0.1）
- *   - bobSpeed?: number — 浮动速度（默认 2 rad/s）
- */
 export interface KiloxProps {
   position: [number, number, number];
   size?: number;
@@ -30,6 +23,11 @@ export interface KiloxProps {
   orbitSpeed?: number;
   bobAmplitude?: number;
   bobSpeed?: number;
+  label?: string;
+  /** 场景对应的描述 id */
+  descriptionId?: DescriptionId;
+  /** 场景占用的道路单元格（列,行） */
+  pathCells?: Array<{ c: number; r: number }>;
 }
 
 /** 加载 glb 并归一化克隆场景 */
@@ -75,7 +73,19 @@ export function Kilox({
   orbitSpeed = 0.5,
   bobAmplitude,
   bobSpeed = 2,
+  label,
+  descriptionId = 'Kilox',
+  pathCells,
 }: KiloxProps) {
+  // 注册场景道路格
+  useEffect(() => {
+    if (!pathCells || pathCells.length === 0) return;
+    const keySet = new Set(pathCells.map(({ c, r }) => `${c},${r}`));
+    sceneState.register({ id: descriptionId, pathCellKeys: keySet });
+    return () => sceneState.unregister(descriptionId);
+  }, [descriptionId, pathCells]);
+
+  const showBubble = useSceneBubble(descriptionId);
   // factory: 居中展示，归一化到 size
   const factory = useNormalizedScene(FACTORY_URL, size, castShadow, receiveShadow);
 
@@ -95,8 +105,8 @@ export function Kilox({
     if (robotRef.current) {
       const angle = t * orbitSpeed;
       // 在 XZ 平面绕中心做圆周运动
-      robotRef.current.position.x = Math.cos(angle) * rOrbit;
-      robotRef.current.position.z = Math.sin(angle) * rOrbit;
+      // robotRef.current.position.x = Math.cos(angle) * rOrbit;
+      // robotRef.current.position.z = Math.sin(angle) * rOrbit;
       // 上下浮动
       robotRef.current.position.y = robotBaseY + Math.sin(t * bobSpeed) * rBob;
       // 让 robot 朝向运动方向
@@ -105,21 +115,46 @@ export function Kilox({
   });
 
   return (
-    <group
-      position={[position[0], position[1] + factory.offsetY, position[2]]}
-      rotation={[0, rotationY, 0]}
-      scale={factory.normalizeScale}
-    >
-      {/* factory 居中 */}
-      <primitive object={factory.clonedScene} />
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <group
+        position={[0, factory.offsetY, 0]}
+        scale={factory.normalizeScale}
+      >
+        {/* factory 居中 */}
+        {/* <primitive object={factory.clonedScene} /> */}
 
-      {/* robot 围绕 factory 运动（scale 补偿 factory 缩放） */}
-      <group ref={robotRef} scale={1 / factory.normalizeScale}>
-        <primitive
-          object={robot.clonedScene}
-          scale={robot.normalizeScale}
-        />
+        {/* robot 围绕 factory 运动（scale 补偿 factory 缩放） */}
+        {/* <group ref={robotRef} scale={1 / factory.normalizeScale}> */}
+          <primitive
+            object={robot.clonedScene}
+            scale={robot.normalizeScale}
+          />
+        {/* </group> */}
       </group>
+
+      {label && (
+        <Text
+          position={[-size / 2 - CELL_SCALE * 0.1, size * 0.25, 0]}
+          fontSize={CELL_SCALE * 0.15}
+          color="#ffcc33"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="#333333"
+        >
+          {label}
+        </Text>
+      )}
+
+      {/* Envelope 放在（0.5, 0, 0.5）位置（相对于组件 size） */}
+      <Envelope
+        position={[0.5, 0, 0.5]}
+        size={size * 0.35}
+        animated
+        showBubble={showBubble}
+        castShadow={castShadow}
+        receiveShadow={receiveShadow}
+      />
     </group>
   );
 }

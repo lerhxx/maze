@@ -5,11 +5,13 @@ import type { GameRef, MazeData } from '../game/types';
 import { MazeEnvironment } from './Maze';
 import { Player } from './SpherePlayer';
 import { HUD } from './HUD';
+import { Description } from './Description';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
 import { EYE_HEIGHT } from '../constants/player';
 import { CELL_SCALE } from '../constants/global';
 import { OrbitControls } from '@react-three/drei';
 import { Perf } from 'r3f-perf';
+import { sceneState, useSceneState, type DescriptionId } from '../state/sceneStore';
 
 interface MazeGameProps {
   maze: MazeData;
@@ -30,6 +32,9 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
     pointerLocked: false,
   });
 
+  // 订阅全局场景 state：触发重新渲染弹窗/E 键处理
+  useSceneState();
+
   // Start timer on mount
   useEffect(() => {
     startRef.current = Date.now();
@@ -46,6 +51,28 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
     }
     onWin(elapsed);
   }, [won, onWin]);
+
+  // E 键全局处理：
+  //  - 弹窗已打开 → 关闭（弹窗内的 E 监听也会生效）
+  //  - 弹窗未打开 + 玩家在某个场景道路格上（activeSceneId） → 打开对应描述
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'e') return;
+      // 忽略 input / textarea 的 e
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && /^(INPUT|TEXTAREA)$/.test(tgt.tagName)) return;
+
+      if (sceneState.openId) {
+        sceneState.closeDescription();
+      } else if (sceneState.activeSceneId) {
+        sceneState.openDescription(sceneState.activeSceneId as DescriptionId);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const openId = sceneState.openId as DescriptionId | null;
 
   return (
     <div className="game-container">
@@ -68,6 +95,12 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
       {/* Click-to-lock hint */}
       {/* <ClickToPlayHint gameRef={gameRef} /> */}
 
+      {openId && (
+        <Description
+          id={openId}
+          onClose={() => sceneState.closeDescription()}
+        />
+      )}
     </div>
   );
 }

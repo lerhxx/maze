@@ -1,20 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import type { ReactNode } from 'react';
 import { useGraph } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
-import {
-  LEAF_PALETTE,
-  TRUNK_PALETTE,
-  GREENTREE_PARTS_TOTAL,
-  GREENTREE_PALETTE_SIZE,
-  getGreentreeGeometry,
-  getGreentreeLocalPosition,
-  GREENTREE_UNIT_HEIGHT,
-  GREENTREE_UNIT_RADIUS,
-  GREENTREE_PART_TRUNK,
-} from './GreenTree';
 
 // GLTF 资产位置
 const SAKURA_URL = '/model/sakura-tree.glb';
@@ -37,179 +25,42 @@ export function isPerimeterWall(c: number, r: number, w: number, h: number): boo
   return c === 0 || c === w - 1 || r === 0 || r === h - 1;
 }
 
-// ===== 内部墙单元格类型（含可选 content） =====
+// ===== 内部墙单元格类型 =====
 
 export interface InteriorWallCell {
   c: number;
   r: number;
-  /** 可选渲染内容：若存在则优先渲染，否则按默认针叶松逻辑 */
-  content?: ReactNode;
 }
 
-// ===== 1. InteriorTreesCells: 内部墙格 GreenTree 针叶松群（5 调色板 × 5 子零件 = 25 InstancedMesh） =====
+// ===== 1. InteriorTreesCells: 内部墙格樱花树（1 主 + 3~4 小）+ 跳过已占用格 =====
 
 interface InteriorTreesCellsProps {
   cells: InteriorWallCell[];
+  /** 已被场景占用的墙格 key 集合（"c-r"），这些格不渲染樱花树 */
+  occupiedCells?: Set<string>;
 }
 
-interface SingleTree {
-  /** 世界 X */
-  x: number;
-  /** 世界 Z */
-  z: number;
-  /** 整体缩放（目标最高 ≈ CELL_SCALE） */
-  s: number;
-  /** 绕 Y 旋转 */
-  yRot: number;
-  /** 调色板索引 [0, GREENTREE_PALETTE_SIZE) */
-  paletteIdx: number;
+export function InteriorTreesCells({ cells, occupiedCells }: InteriorTreesCellsProps) {
+  // 过滤掉被场景占用的格
+  const treeCells = useMemo(() => {
+    if (!occupiedCells || occupiedCells.size === 0) return cells;
+    return cells.filter(({ c, r }) => !occupiedCells.has(`${c}-${r}`));
+  }, [cells, occupiedCells]);
+
+  return <PerimeterSakuraCells cells={treeCells} />;
 }
 
-export function InteriorTreesCells({ cells }: InteriorTreesCellsProps) {
-  // 分离：有 content 的格 → 渲染 content；无 content 的格 → 走针叶松 InstancedMesh
-  const { contentCells, treeCells } = useMemo(() => {
-    const content: Array<{ c: number; r: number; node: ReactNode }> = [];
-    const trees: InteriorWallCell[] = [];
-    for (const cell of cells) {
-      if (cell.content) {
-        content.push({ c: cell.c, r: cell.r, node: cell.content });
-      } else {
-        trees.push(cell);
-      }
-    }
-    return { contentCells: content, treeCells: trees };
-  }, [cells]);
+// ===== 2. SakuraWallCells: 樱花树墙（每格 1 主树 + 3~4 小树） =====
+//   用于外围墙和内部墙（内部墙通过 InteriorTreesCells 的 content 机制跳过有 content 的格）
 
-  // 每内部墙格 3~6 棵树，统一先算实例 → 按 (paletteIdx, partIdx) 分组
-  const instancesByPalette = useMemo<SingleTree[][]>(() => {
-    const buckets: SingleTree[][] = Array.from(
-      { length: GREENTREE_PALETTE_SIZE },
-      () => [],
-    );
-    const unitScale = CELL_SCALE / GREENTREE_UNIT_HEIGHT;
-    for (let { c, r } of treeCells) {
-      const rng = createLcg(c, r);
-      const count = 3 + Math.floor(rng() * 4); // 3..6
-      const cellX0 = c * CELL_SCALE;
-      const cellZ0 = r * CELL_SCALE;
-      for (let i = 0; i < count; i++) {
-        const s = (0.6 + rng() * 0.4) * unitScale;
-        const safeRadius = s * GREENTREE_UNIT_RADIUS;
-        const minX = cellX0 + safeRadius;
-        const maxX = cellX0 + CELL_SCALE - safeRadius;
-        const minZ = cellZ0 + safeRadius;
-        const maxZ = cellZ0 + CELL_SCALE - safeRadius;
-        const fxRaw = rng();
-        const fzRaw = rng();
-        const xRaw = cellX0 + fxRaw * CELL_SCALE;
-        const zRaw = cellZ0 + fzRaw * CELL_SCALE;
-        const x = Math.min(Math.max(xRaw, minX), maxX);
-        const z = Math.min(Math.max(zRaw, minZ), maxZ);
-        const yRot = rng() * Math.PI * 2;
-        const paletteIdx = Math.min(
-          GREENTREE_PALETTE_SIZE - 1,
-          Math.floor(rng() * GREENTREE_PALETTE_SIZE),
-        );
-        buckets[paletteIdx].push({ x, z, s, yRot, paletteIdx });
-      }
-    }
-    return buckets;
-  }, [treeCells]);
-
-  // 所有子零件（5 个）× 所有调色板（5 个）共 25 个 instancedMesh refs
-  const refs = useRef<Record<string, THREE.InstancedMesh | null>>({});
-
-  useLayoutEffect(() => {
-    const treeDummy = new THREE.Object3D();
-    const partDummy = new THREE.Object3D();
-    const partLocalMatrix = new THREE.Matrix4();
-    const composed = new THREE.Matrix4();
-
-    for (let paletteIdx = 0; paletteIdx < GREENTREE_PALETTE_SIZE; paletteIdx++) {
-      const trees = instancesByPalette[paletteIdx];
-      for (let partIdx = 0; partIdx < GREENTREE_PARTS_TOTAL; partIdx++) {
-        const key = `${paletteIdx}-${partIdx}`;
-        const inst = refs.current[key];
-        if (!inst) continue;
-        const partLocalY = getGreentreeLocalPosition(partIdx);
-        for (let i = 0; i < trees.length; i++) {
-          const t = trees[i];
-          treeDummy.position.set(t.x, 0, t.z);
-          treeDummy.rotation.set(0, t.yRot, 0);
-          treeDummy.scale.setScalar(t.s);
-          treeDummy.updateMatrix();
-
-          partDummy.position.set(0, partLocalY, 0);
-          partDummy.rotation.set(0, 0, 0);
-          partDummy.scale.set(1, 1, 1);
-          partDummy.updateMatrix();
-          partLocalMatrix.copy(partDummy.matrix);
-
-          composed.multiplyMatrices(treeDummy.matrix, partLocalMatrix);
-          inst.setMatrixAt(i, composed);
-        }
-        inst.instanceMatrix.needsUpdate = true;
-      }
-    }
-  }, [instancesByPalette]);
-
-  const treeNodes = [];
-  for (let paletteIdx = 0; paletteIdx < GREENTREE_PALETTE_SIZE; paletteIdx++) {
-    const count = instancesByPalette[paletteIdx].length;
-    if (count === 0) continue;
-    const leafColor = LEAF_PALETTE[paletteIdx];
-    const trunkColor = TRUNK_PALETTE[paletteIdx];
-    for (let partIdx = 0; partIdx < GREENTREE_PARTS_TOTAL; partIdx++) {
-      const color = partIdx === GREENTREE_PART_TRUNK ? trunkColor : leafColor;
-      const key = `${paletteIdx}-${partIdx}`;
-      const geom = getGreentreeGeometry(partIdx);
-      const isTrunk = partIdx === GREENTREE_PART_TRUNK;
-      const roughness = isTrunk ? 0.9 : 0.75;
-      const flat = !isTrunk;
-      treeNodes.push(
-        <instancedMesh
-          key={key}
-          ref={(el) => {
-            refs.current[key] = el;
-          }}
-          args={[geom, undefined, count]}
-          castShadow
-          receiveShadow
-        >
-          <meshStandardMaterial
-            color={color}
-            roughness={roughness}
-            metalness={0}
-            flatShading={flat}
-          />
-        </instancedMesh>,
-      );
-    }
-  }
-
-  return (
-    <>
-      {treeNodes}
-      {/* 有 content 的墙格 → 渲染 content（如 shopee.glb） */}
-      {contentCells.map(({ c, r, node }, i) => (
-        <group
-          key={`content-${c}-${r}-${i}`}
-          position={[(c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE]}
-        >
-          {node}
-        </group>
-      ))}
-    </>
-  );
-}
-
-// ===== 2. PerimeterSakuraCells: 迷宫四边樱花树贴边围绕 =====
-
-interface PerimeterSakuraCellsProps {
+interface SakuraWallCellsProps {
   cells: Array<{ c: number; r: number }>;
 }
 
-export function PerimeterSakuraCells({ cells }: PerimeterSakuraCellsProps) {
+/** 每格最多 5 棵（1 主 + 4 小） */
+const MAX_TREES_PER_CELL = 5;
+
+export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
   const gltf = useGLTF(SAKURA_URL);
   const { nodes, materials } = useGraph(gltf.scene as unknown as THREE.Object3D);
 
@@ -247,35 +98,67 @@ export function PerimeterSakuraCells({ cells }: PerimeterSakuraCellsProps) {
     return { meshParts: result, normalizeScale: scale };
   }, [gltf.scene, nodes]);
 
+  // 预计算每格的树实例（1 主 + 3~4 小）
+  const treeInstances = useMemo(() => {
+    const result: Array<{
+      x: number; z: number; scale: number; yRot: number;
+    }> = [];
+    for (const { c, r } of cells) {
+      const rng = createLcg(c, r);
+      const cx = (c + 0.5) * CELL_SCALE;
+      const cz = (r + 0.5) * CELL_SCALE;
+
+      // 1 棵主树：高度 0.4~0.6，居中
+      const mainHeight = 0.4 + rng() * 0.2;
+      result.push({
+        x: cx, z: cz,
+        scale: normalizeScale * mainHeight,
+        yRot: rng() * Math.PI * 2,
+      });
+
+      // 3~4 棵小树：高度 0.2~0.5，围绕主树
+      const smallCount = 3 + Math.floor(rng() * 2); // 3..4
+      for (let i = 0; i < smallCount; i++) {
+        const angle = (i / smallCount) * Math.PI * 2 + rng() * 0.5;
+        const dist = 0.2 + rng() * 0.2; // 距中心 0.2~0.4 cell
+        const smallHeight = 0.2 + rng() * 0.3;
+        result.push({
+          x: cx + Math.cos(angle) * dist * CELL_SCALE,
+          z: cz + Math.sin(angle) * dist * CELL_SCALE,
+          scale: normalizeScale * smallHeight,
+          yRot: rng() * Math.PI * 2,
+        });
+      }
+    }
+    return result;
+  }, [cells, normalizeScale]);
+
+  const totalCount = treeInstances.length;
   const instancedRefs = useRef<Array<THREE.InstancedMesh | null>>([]);
 
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D();
-    const cellMatrix = new THREE.Matrix4();
     const composed = new THREE.Matrix4();
     for (let partIdx = 0; partIdx < meshParts.length; partIdx++) {
       const inst = instancedRefs.current[partIdx];
       if (!inst) continue;
       const partLocal = meshParts[partIdx].localMatrix;
-      for (let i = 0; i < cells.length; i++) {
-        const { c, r } = cells[i];
-        const rng = createLcg(c, r);
-        const s = 0.6 + rng() * 0.4;
-        dummy.position.set((c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE);
-        dummy.rotation.set(0, rng() * Math.PI * 2, 0);
-        dummy.scale.setScalar(normalizeScale * s);
+      for (let i = 0; i < treeInstances.length; i++) {
+        const t = treeInstances[i];
+        dummy.position.set(t.x, 0, t.z);
+        dummy.rotation.set(0, t.yRot, 0);
+        dummy.scale.setScalar(t.scale);
         dummy.updateMatrix();
-        cellMatrix.copy(dummy.matrix);
-        composed.multiplyMatrices(cellMatrix, partLocal);
+        composed.multiplyMatrices(dummy.matrix, partLocal);
         inst.setMatrixAt(i, composed);
       }
       inst.instanceMatrix.needsUpdate = true;
     }
-  }, [cells, meshParts, normalizeScale]);
+  }, [treeInstances, meshParts]);
 
   void materials;
 
-  if (cells.length === 0) return null;
+  if (totalCount === 0) return null;
   if (meshParts.length === 0) return null;
 
   return (
@@ -291,7 +174,7 @@ export function PerimeterSakuraCells({ cells }: PerimeterSakuraCellsProps) {
             ref={(el) => {
               instancedRefs.current[idx] = el;
             }}
-            args={[srcGeom, srcMat, cells.length]}
+            args={[srcGeom, srcMat, totalCount]}
             castShadow
             receiveShadow
           />

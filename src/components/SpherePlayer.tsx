@@ -12,6 +12,7 @@ import {
 } from '../constants/player';
 import { TORCH_INTENSITY } from '../constants/light';
 import { CELL_SCALE, USE_MOUSE } from '../constants/global';
+import { updatePlayerPathCell } from '../state/sceneStore';
 
 // 防穿墙：每步最大位移 = 0.2 个单元格（世界单位）
 const MAX_STEP = 0.2 * CELL_SCALE;
@@ -214,6 +215,19 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       wonRef.current = true;
       onWin();
     }
+
+    // --- 更新场景道路格（用于气泡触发） ---
+    updatePlayerPathCell(
+      posRef.current.x,
+      posRef.current.z,
+      CELL_SCALE,
+      (c, r) =>
+        c >= 0 &&
+        c < maze.width &&
+        r >= 0 &&
+        r < maze.height &&
+        maze.cells[c][r].type === 'path',
+    );
   });
 
   return (

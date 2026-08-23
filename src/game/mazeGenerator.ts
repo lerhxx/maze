@@ -1,5 +1,34 @@
-import type { Cell, MazeData } from './types';
+import type { Cell, MazeData, PathCell, PathDirection } from './types';
 import { CELL_SCALE } from '../constants/global';
+
+/** 计算从 from 到 to 的方向 */
+function getDirection(from: [number, number], to: [number, number]): PathDirection {
+  const dc = to[0] - from[0];
+  const dr = to[1] - from[1];
+  if (dc > 0) return 'r';
+  if (dc < 0) return 'l';
+  if (dr < 0) return 't';
+  return 'b';
+}
+
+/** 将原始坐标数组转换为带方向信息的 PathCell[] */
+function buildPathCells(rawPath: Array<[number, number]>): PathCell[] {
+  return rawPath.map(([c, r], i) => {
+    const prePos = i > 0
+      ? { c: rawPath[i - 1][0], r: rawPath[i - 1][1] }
+      : undefined;
+    const nextPos = i < rawPath.length - 1
+      ? { c: rawPath[i + 1][0], r: rawPath[i + 1][1] }
+      : undefined;
+    // dir: 从前一个单元格到本单元格的方向；首格默认 'b'
+    const dir: PathDirection = prePos
+      ? getDirection([prePos.c, prePos.r], [c, r])
+      : nextPos
+        ? getDirection([c, r], [nextPos.c, nextPos.r])
+        : 'b';
+    return { c, r, dir, prePos, nextPos };
+  });
+}
 
 /**
  * 生成块式迷宫：每个单元格要么是道路，要么是墙壁。
@@ -33,7 +62,7 @@ export function generateMaze(width: number, height: number): MazeData {
   const startR = 1;
   const exitC = w - 2;
   const exitR = h - 2;
-  let solutionPath: Array<[number, number]> = [];
+  let solutionPath: PathCell[] = [];
   cells[startC][startR].type = 'path';
   cells[startC][startR].visited = true;
   stack.push([startC, startR]);
@@ -76,15 +105,17 @@ export function generateMaze(width: number, height: number): MazeData {
     // DFS 栈本身就是「起点→当前格」的路径；首次到达终点时记录
     if (solutionPath.length === 0 && nc === exitC && nr === exitR) {
       // 栈只含步长 2 的奇数坐标格，需补上相邻两格之间的偶数 mid 格
-      solutionPath = [];
+      const rawPath: Array<[number, number]> = [];
       for (let i = 0; i < stack.length; i++) {
         const [pc, pr] = stack[i];
-        solutionPath.push([pc, pr]);
+        rawPath.push([pc, pr]);
         if (i < stack.length - 1) {
           const [nxc, nxr] = stack[i + 1];
-          solutionPath.push([(pc + nxc) / 2, (pr + nxr) / 2]);
+          rawPath.push([(pc + nxc) / 2, (pr + nxr) / 2]);
         }
       }
+      // 转换为带方向信息的 PathCell[]
+      solutionPath = buildPathCells(rawPath);
     }
   }
 

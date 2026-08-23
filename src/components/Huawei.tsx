@@ -9,9 +9,9 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const SHOPEE_URL = '/model/shopee-logo.glb';
+const HUAWEI_URL = '/model/huawei.glb';
 
-export interface ShopeeProps {
+export interface HuaweiProps {
   position: [number, number, number];
   size?: number;
   rotationY?: number;
@@ -22,16 +22,16 @@ export interface ShopeeProps {
   pathCells?: Array<{ c: number; r: number }>;
 }
 
-export function Shopee({
+export function Huawei({
   position,
   size = 1,
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
   label,
-  descriptionId = 'Shopee',
+  descriptionId = 'Huawei',
   pathCells,
-}: ShopeeProps) {
+}: HuaweiProps) {
   useEffect(() => {
     if (!pathCells || pathCells.length === 0) return;
     const keySet = new Set(pathCells.map(({ c, r }) => `${c},${r}`));
@@ -41,7 +41,7 @@ export function Shopee({
 
   const showBubble = useSceneBubble(descriptionId);
 
-  const gltf = useGLTF(SHOPEE_URL);
+  const gltf = useGLTF(HUAWEI_URL);
 
   const { clonedScene, normalizeScale, offsetY } = useMemo<{
     clonedScene: THREE.Object3D;
@@ -94,7 +94,7 @@ export function Shopee({
 
       <Envelope
         position={[0.5, 0, 0.5]}
-        size={size * 0.1}
+        size={size * 0.35}
         animated
         showBubble={showBubble}
         castShadow={castShadow}
@@ -104,4 +104,4 @@ export function Shopee({
   );
 }
 
-export default Shopee;
+export default Huawei;

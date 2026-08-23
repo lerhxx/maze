@@ -2,11 +2,11 @@ import { useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { MazeData } from '../game/types';
+import type { MazeData, PathCell, PathDirection } from '../game/types';
 import { WALL_HEIGHT } from '../constants/wall';
 import { EXIT_COLOR } from '../constants/flag';
 import { CELL_SCALE } from '../constants/global';
-import { GrassCells } from './GrassCells';
+import { GrassCellsRenderer as GrassCells } from './GrassCells';
 import {
   InteriorTreesCells,
   PerimeterSakuraCells,
@@ -15,74 +15,209 @@ import {
 } from './Wall';
 import { Shopee } from './Shopee';
 import { Kilox } from './Kilox';
+import { Huawei } from './Huawei';
 
-// 上(r-1)、右(c+1)、下(r+1)、左(c-1)
-const ADJACENT_DIRS: Array<[number, number]> = [
-  [0, -1], // 上
-  [1, 0],  // 右
-  [0, 1],  // 下
-  [-1, 0], // 左
-];
+// ===== 场景放置逻辑 =====
 
-/**
- * 计算模型绕 Y 轴的旋转角度，使其正面朝向 pathCell。
- * 假设模型默认正面朝 +Z。
- * Three.js rotation.y 正值从 +Z 转向 +X（俯视逆时针），
- * 方向向量 (dc, dr) → XZ 平面角度 = atan2(dc, dr)。
- */
-function calcFrontRotationY(
-  cell: { c: number; r: number },
-  pathCell: { c: number; r: number },
-): number {
-  const dc = pathCell.c - cell.c;
-  const dr = pathCell.r - cell.r;
-  return Math.atan2(dc, dr);
-}
-
-// ===== Content 生成函数：根据 solutionPath 位置查找附近墙格，返回 content 映射 =====
-
-/** 一个 content 放置点定义 */
-interface ContentPlacement {
+/** 场景放置定义 */
+interface ScenePlacement {
   /** 在 solutionPath 上的位置比例 [0, 1] */
   pathFraction: number;
-  /** 找到墙格后生成 content；返回值会直接作为该格的 content */
-  generateContent: (cell: { c: number; r: number }, pathCell: { c: number; r: number }) => ReactNode;
+  /** 场景占用的单元格数（沿道路方向） */
+  length: number;
+  /** 模型左侧显示的文字标签 */
+  label?: string;
+  /** 场景描述 id（对应 descriptions.ts 中的 key） */
+  descriptionId: 'Kilox' | 'Huawei' | 'Shopee';
+  /** 生成场景组件 */
+  generateContent: (
+    position: [number, number, number],
+    rotationY: number,
+    size: number,
+    label: string | undefined,
+    pathCells: Array<{ c: number; r: number }>,
+    descriptionId: 'Kilox' | 'Huawei' | 'Shopee',
+  ) => ReactNode;
 }
 
 /**
- * 查找 solutionPath 指定位置附近的首个墙格（按上右下左顺序），返回 content 映射。
- *
- * @param maze 迷宫数据
- * @param placements 多个放置点定义
- * @returns Map<"c-r", ReactNode> — 墙格坐标 → content
+ * 查找连续直线段：
+ *   - 正向：检查 path[idx+1..idx+length-1] 的 dir 是否都相同
+ *   - 反向：检查 path[idx-1..idx+length-2] 的 dir 是否都在同一轴（t/b 或 l/r）
  */
-function findContentCells(
-  maze: MazeData,
-  placements: ContentPlacement[],
-): Map<string, ReactNode> {
-  const result = new Map<string, ReactNode>();
-  const path = maze.solutionPath;
-  if (!path || path.length < 4) return result;
-  const w = maze.width;
-  const h = maze.height;
-  for (const placement of placements) {
-    const idx = Math.floor(path.length * placement.pathFraction);
-    const [pc, pr] = path[Math.min(idx, path.length - 1)];
-    for (const [dc, dr] of ADJACENT_DIRS) {
-      const nc = pc + dc;
-      const nr = pr + dr;
-      if (nc < 0 || nc >= w || nr < 0 || nr >= h) continue;
-      if (maze.cells[nc][nr].type !== 'wall') continue;
-      // 跳过外围墙：外围墙不在 interiorWallCells 里，content 匹配不上
-      if (isPerimeterWall(nc, nr, w, h)) continue;
-      const key = `${nc}-${nr}`;
-      if (!result.has(key)) {
-        result.set(key, placement.generateContent({ c: nc, r: nr }, { c: pc, r: pr }));
+function findStraightSegment(
+  path: PathCell[],
+  startIdx: number,
+  length: number,
+): { start: number; end: number } | null {
+  if (length < 2) return { start: startIdx, end: startIdx };
+
+  // 正向：startIdx..startIdx+length-1
+  if (startIdx + length - 1 < path.length) {
+    const baseDir = path[startIdx + 1]?.dir;
+    if (baseDir) {
+      let ok = true;
+      for (let j = 2; j < length; j++) {
+        if (path[startIdx + j]?.dir !== baseDir) { ok = false; break; }
       }
-      break;
+      if (ok) return { start: startIdx, end: startIdx + length - 1 };
     }
   }
-  return result;
+
+  // 反向：startIdx-1..startIdx+length-2
+  if (startIdx > 0 && startIdx + length - 2 < path.length) {
+    const baseDir = path[startIdx]?.dir;
+    if (baseDir) {
+      const baseAxis = (baseDir === 't' || baseDir === 'b') ? 'v' : 'h';
+      let ok = true;
+      for (let j = 1; j < length - 1; j++) {
+        const d = path[startIdx + j]?.dir;
+        if (!d) { ok = false; break; }
+        const dAxis = (d === 't' || d === 'b') ? 'v' : 'h';
+        if (dAxis !== baseAxis) { ok = false; break; }
+      }
+      if (ok) return { start: startIdx - 1, end: startIdx + length - 2 };
+    }
+  }
+
+  return null;
+}
+
+/** 方向的垂直偏移：水平路径→墙在上/下；垂直路径→墙在左/右 */
+function getWallSides(dir: PathDirection): Array<{ dc: number; dr: number }> {
+  if (dir === 't' || dir === 'b') {
+    return [{ dc: -1, dr: 0 }, { dc: 1, dr: 0 }]; // 左、右
+  }
+  return [{ dc: 0, dr: -1 }, { dc: 0, dr: 1 }]; // 上、下
+}
+
+/**
+ * 在 solutionPath 上查找场景放置位置。
+ * 返回 { contentMap, occupiedCells }。
+ */
+function findScenePlacements(
+  maze: MazeData,
+  placements: ScenePlacement[],
+  maxSearchOffset = 20,
+): { contentMap: Map<string, ReactNode>; occupiedCells: Set<string> } {
+  const contentMap = new Map<string, ReactNode>();
+  const occupiedCells = new Set<string>();
+  const path = maze.solutionPath;
+  if (!path || path.length < 4) return { contentMap, occupiedCells };
+  const w = maze.width;
+  const h = maze.height;
+
+  for (const placement of placements) {
+    const baseIdx = Math.floor(path.length * placement.pathFraction);
+    const length = placement.length;
+    let placed = false;
+
+    for (let offset = 0; offset <= maxSearchOffset && !placed; offset++) {
+      for (const direction of [1, -1]) {
+        const idx = baseIdx + offset * direction;
+        if (idx < 0 || idx >= path.length) continue;
+
+        // 查找连续直线段
+        const segment = findStraightSegment(path, idx, length);
+        if (!segment) continue;
+
+        // 获取段内路径格
+        const segmentPathCells: Array<{ c: number; r: number }> = [];
+        for (let j = segment.start; j <= segment.end; j++) {
+          segmentPathCells.push({ c: path[j].c, r: path[j].r });
+        }
+
+        // 确定墙侧方向
+        const segDir = path[segment.start + 1]?.dir ?? path[segment.start].dir;
+        const sides = getWallSides(segDir);
+
+        // 尝试两侧
+        for (const side of sides) {
+          const wallCells: Array<{ c: number; r: number }> = [];
+          let valid = true;
+
+          for (const pc of segmentPathCells) {
+            const wc = pc.c + side.dc;
+            const wr = pc.r + side.dr;
+            if (wc < 0 || wc >= w || wr < 0 || wr >= h) { valid = false; break; }
+            if (maze.cells[wc][wr].type !== 'wall') { valid = false; break; }
+            if (isPerimeterWall(wc, wr, w, h)) { valid = false; break; }
+            const key = `${wc}-${wr}`;
+            if (occupiedCells.has(key)) { valid = false; break; }
+            wallCells.push({ c: wc, r: wr });
+          }
+
+          if (!valid) continue;
+
+          // 标记所有墙格为已占用
+          for (const wc of wallCells) {
+            occupiedCells.add(`${wc.c}-${wc.r}`);
+          }
+
+          // 所有墙格放组件
+          if (wallCells.length > 0) {
+            // 组件中心 = 所有墙格的中心
+            const centerC = wallCells.reduce((s, c) => s + c.c, 0) / wallCells.length;
+            const centerR = wallCells.reduce((s, c) => s + c.r, 0) / wallCells.length;
+
+            // 相对于第一个墙格的偏移（ScenePlacements group 已在该格中心）
+            const firstCell = wallCells[0];
+            const position: [number, number, number] = [
+              (centerC - firstCell.c) * CELL_SCALE,
+              0,
+              (centerR - firstCell.r) * CELL_SCALE,
+            ];
+
+            // 路径中心
+            const pathCenterC = segmentPathCells.reduce((s, c) => s + c.c, 0) / segmentPathCells.length;
+            const pathCenterR = segmentPathCells.reduce((s, c) => s + c.r, 0) / segmentPathCells.length;
+
+            // 旋转：组件正面朝向路径中心
+            const dc = pathCenterC - centerC;
+            const dr = pathCenterR - centerR;
+            const rotationY = Math.atan2(dc, dr);
+
+            // 组件尺寸 = 占用格数 × 单元格尺寸
+            const size = wallCells.length * CELL_SCALE;
+
+            contentMap.set(
+              `${firstCell.c}-${firstCell.r}`,
+              placement.generateContent(position, rotationY, size, placement.label, segmentPathCells, placement.descriptionId),
+            );
+          }
+
+          placed = true;
+          break;
+        }
+        if (placed) break;
+      }
+    }
+  }
+
+  return { contentMap, occupiedCells };
+}
+
+/** 渲染场景放置点 */
+function ScenePlacements({ contentMap }: { contentMap: Map<string, ReactNode> }) {
+  const items = useMemo(() => {
+    return Array.from(contentMap.entries()).map(([key, node]) => {
+      const [c, r] = key.split('-').map(Number);
+      return { c, r, node, key };
+    });
+  }, [contentMap]);
+
+  return (
+    <>
+      {items.map(({ c, r, node, key }) => (
+        <group
+          key={key}
+          position={[(c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE]}
+        >
+          {node}
+        </group>
+      ))}
+    </>
+  );
 }
 
 interface MazeEnvironmentProps {
@@ -94,8 +229,8 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
 
   // 墙格分两类：
   //   perimeterSakuraCells → 迷宫四边（c=0/w-1 或 r=0/h-1）→ 樱花树贴边围绕
-  //   interiorWallCells    → 所有内部墙（去重每格一条）→ 每格放多棵 GreenTree 针叶松
-  //   grassCells           → 所有 wall cells（外围 + 内部并集）→ 每格底部平铺 grass.glb
+  //   interiorWallCells    → 所有内部墙（去重每格一条）→ 樱花树群
+  //   grassCells           → 所有 wall cells（外围 + 内部并集）→ 每格底部平铺 grass
   const { perimeterSakuraCells, interiorWallCells, grassCells } = useMemo(() => {
     const sak: Array<{ c: number; r: number }> = [];
     const int: InteriorWallCell[] = [];
@@ -118,36 +253,42 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
     return { perimeterSakuraCells: sak, interiorWallCells: int, grassCells: grass };
   }, [maze, w, h]);
 
-  // 用 findContentCells 查找多个 content 放置点（便于扩展）
-  const contentMap = useMemo(() => {
-    return findContentCells(maze, [
+  // 用 findScenePlacements 查找场景放置点：
+  //   1/3 处 → Kilox，往后间隔 3 步 → Huawei，再往后间隔 3 步 → Shopee
+  const { contentMap, occupiedCells } = useMemo(() => {
+    const pathLen = maze.solutionPath?.length ?? 0;
+    if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>() };
+    const step = 3 / pathLen;
+    return findScenePlacements(maze, [
       {
-        pathFraction: 0.25,
-        generateContent: (_cell, pathCell) => {
-          const rotationY = calcFrontRotationY(_cell, pathCell);
-          return <Kilox position={[0, 0, 0]} size={CELL_SCALE * 0.75} rotationY={rotationY} />;
-        },
+        pathFraction: 1 / 3,
+        length: 1,
+        // label: '2026',
+        descriptionId: 'Kilox',
+        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
+          <Kilox position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        ),
       },
       {
-        pathFraction: 0.5,
-        generateContent: (_cell, pathCell) => {
-          const rotationY = calcFrontRotationY(_cell, pathCell);
-          return <Shopee position={[0, 0, 0]} size={CELL_SCALE} rotationY={rotationY} />;
-        },
+        pathFraction: 1 / 3 + step,
+        length: 1,
+        // label: '2026',
+        descriptionId: 'Huawei',
+        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
+          <Huawei position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        ),
+      },
+      {
+        pathFraction: 1 / 3 + step * 2,
+        length: 1,
+        // label: '2026',
+        descriptionId: 'Shopee',
+        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
+          <Shopee position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        ),
       },
     ]);
   }, [maze]);
-
-  // 给 interiorWallCells 中对应的格子加上 content
-  const interiorWithContent = useMemo<InteriorWallCell[]>(() => {
-    if (contentMap.size === 0) return interiorWallCells;
-    return interiorWallCells.map((cell) => {
-      const key = `${cell.c}-${cell.r}`;
-      const content = contentMap.get(key);
-      if (content) return { ...cell, content };
-      return cell;
-    });
-  }, [interiorWallCells, contentMap]);
 
   return (
     <group>
@@ -160,11 +301,14 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         <meshStandardMaterial color="#D29E76" />
       </mesh>
 
-      {/* 所有墙格底部：grass.glb 贴地平铺（1 格一个） */}
+      {/* 所有墙格底部：grass 贴地平铺 */}
       <GrassCells cells={grassCells} />
 
-      {/* 内部墙 → 有 content 的格渲染 content（如 shopee），无 content 的渲染针叶松 */}
-      <InteriorTreesCells cells={interiorWithContent} />
+      {/* 内部墙 → 樱花树（跳过被场景占用的格） */}
+      <InteriorTreesCells cells={interiorWallCells} occupiedCells={occupiedCells} />
+
+      {/* 场景放置点（Kilox / Huawei / Shopee + label） */}
+      <ScenePlacements contentMap={contentMap} />
 
       {/* 迷宫四边：樱花树贴边围绕（每格 1 棵，最高 1 cell 高度） */}
       <PerimeterSakuraCells cells={perimeterSakuraCells} />
