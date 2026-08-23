@@ -10,7 +10,6 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const FACTORY_URL = '/model/factory.glb';
 const ROBOT_URL = '/model/robot.glb';
 
 export interface KiloxProps {
@@ -86,10 +85,8 @@ export function Kilox({
   }, [descriptionId, pathCells]);
 
   const showBubble = useSceneBubble(descriptionId);
-  // factory: 居中展示，归一化到 size
-  const factory = useNormalizedScene(FACTORY_URL, size, castShadow, receiveShadow);
 
-  // robot: 归一化到 size 的 0.3
+  // robot: 归一化到 size 的 0.2
   const robotSize = size * 0.2;
   const robot = useNormalizedScene(ROBOT_URL, robotSize, castShadow, receiveShadow);
 
@@ -104,9 +101,6 @@ export function Kilox({
     const t = state.clock.elapsedTime;
     if (robotRef.current) {
       const angle = t * orbitSpeed;
-      // 在 XZ 平面绕中心做圆周运动
-      // robotRef.current.position.x = Math.cos(angle) * rOrbit;
-      // robotRef.current.position.z = Math.sin(angle) * rOrbit;
       // 上下浮动
       robotRef.current.position.y = robotBaseY + Math.sin(t * bobSpeed) * rBob;
       // 让 robot 朝向运动方向
@@ -116,20 +110,12 @@ export function Kilox({
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <group
-        position={[0, factory.offsetY, 0]}
-        scale={factory.normalizeScale}
-      >
-        {/* factory 居中 */}
-        {/* <primitive object={factory.clonedScene} /> */}
-
-        {/* robot 围绕 factory 运动（scale 补偿 factory 缩放） */}
-        {/* <group ref={robotRef} scale={1 / factory.normalizeScale}> */}
-          <primitive
-            object={robot.clonedScene}
-            scale={robot.normalizeScale}
-          />
-        {/* </group> */}
+      <group position={[0, 0, 0]}>
+        <primitive
+          ref={robotRef as unknown as React.Ref<THREE.Object3D>}
+          object={robot.clonedScene}
+          scale={robot.normalizeScale}
+        />
       </group>
 
       {label && (

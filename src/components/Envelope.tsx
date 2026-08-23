@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Html, Billboard } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 const ENVELOPE_URL = '/model/envelope.glb';
@@ -36,7 +36,6 @@ export function Envelope({
   receiveShadow = true,
 }: EnvelopeProps) {
   const gltf = useGLTF(ENVELOPE_URL);
-  const { camera } = useThree();
 
   const { clonedScene, normalizeScale, offsetY } = useMemo(() => {
     const cloned = (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
@@ -86,50 +85,47 @@ export function Envelope({
         <primitive object={clonedScene} />
       </group>
 
-      {/* 右上角气泡框 E */}
+      {/* 右上角气泡框：纯 HTML 元素，背景 bubble.png，文字 E */}
       {showBubble && (
-        <Billboard camera={camera} position={[size * 0.6, size * 1.0, -size * 0.2]}>
-          <group>
-            {/* 气泡底板 */}
-            <mesh position={[0, 0, 0]}>
-              <sphereGeometry args={[bubbleSize * 0.55, 16, 16]} />
-              <meshStandardMaterial
-                color="#ffffff"
-                emissive="#ffcc33"
-                emissiveIntensity={0.4}
-                metalness={0.2}
-                roughness={0.3}
-              />
-            </mesh>
-            {/* E 文字 */}
-            <Html
-              transform
-              occlude
-              distanceFactor={3}
-              position={[0, 0, bubbleSize * 0.56]}
-              style={{ pointerEvents: 'none' }}
+        <Html
+          transform
+          occlude
+          distanceFactor={3}
+          position={[size * 0.6, size * 1.0, -size * 0.2]}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: 64,
+              height: 64,
+              backgroundImage: 'url(/bubble.png)',
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))',
+              userSelect: 'none',
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 26,
+                color: '#8a4a00',
+                fontFamily:
+                  '"PingFang SC", "Microsoft YaHei", system-ui, sans-serif',
+                textShadow: '0 1px 2px rgba(255,255,255,0.8)',
+                marginLeft: -2,
+                marginTop: -4,
+              }}
             >
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 900,
-                  fontSize: 18,
-                  color: '#8a4a00',
-                  fontFamily:
-                    '"PingFang SC", "Microsoft YaHei", system-ui, sans-serif',
-                  textShadow: '0 1px 2px rgba(255,255,255,0.6)',
-                  userSelect: 'none',
-                }}
-              >
-                E
-              </div>
-            </Html>
-          </group>
-        </Billboard>
+              E
+            </div>
+          </div>
+        </Html>
       )}
     </group>
   );

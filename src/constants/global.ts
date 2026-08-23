@@ -19,4 +19,4 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 export const USE_MOUSE = false;
 
 /** true: 用 Three.js 程序化草地（GrassCellsProcedural）；false: 用 grass.glb 模型 */
-export const IS_PURE_GRASS = true;
+export const IS_PURE_GRASS = false;
