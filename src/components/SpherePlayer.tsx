@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { GameRef, MazeData } from '../game/types';
+import type { GameRef, MazeData, PathDirection } from '../game/types';
 import { canMove } from '../game/mazeGenerator';
 import {
   EYE_HEIGHT,
@@ -19,6 +19,23 @@ const MAX_STEP = 0.2 * CELL_SCALE;
 // 走到墙边时留一点 epsilon，防止贴墙抖动
 const MOVE_EPSILON = 0.05;
 
+/** 将路径方向 (t/r/b/l) 转换为相机 yaw 值
+ *  forward = (-sin(yaw), -cos(yaw))
+ *  r (+x) → yaw = -π/2
+ *  l (-x) → yaw =  π/2
+ *  t (-z) → yaw =  0
+ *  b (+z) → yaw =  π
+ */
+function directionToYaw(dir?: PathDirection): number {
+  switch (dir) {
+    case 'r': return -Math.PI / 2;
+    case 'l': return Math.PI / 2;
+    case 't': return 0;
+    case 'b': return Math.PI;
+    default: return 0;
+  }
+}
+
 
 interface PlayerProps {
   maze: MazeData;
@@ -29,7 +46,9 @@ interface PlayerProps {
 export function Player({ maze, gameRef, onWin }: PlayerProps) {
   const { camera, gl } = useThree();
   const keysRef = useRef<Set<string>>(new Set());
-  const yawRef = useRef(0);
+  // 初始 yaw：面向下一个道路单元格
+  const initialYaw = directionToYaw(maze.solutionPath[0]?.dir);
+  const yawRef = useRef(initialYaw);
   const pitchRef = useRef(0);
   const posRef = useRef({ x: (maze.startCol + 0.5) * CELL_SCALE, z: (maze.startRow + 0.5) * CELL_SCALE });
   const isLockedRef = useRef(false);
@@ -39,7 +58,7 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   // Reset when maze changes
   useEffect(() => {
     posRef.current = { x: (maze.startCol + 0.5) * CELL_SCALE, z: (maze.startRow + 0.5) * CELL_SCALE };
-    yawRef.current = 0;
+    yawRef.current = directionToYaw(maze.solutionPath[0]?.dir);
     pitchRef.current = 0;
     wonRef.current = false;
     gameRef.current.visitedCells.clear();

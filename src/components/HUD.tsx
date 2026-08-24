@@ -55,6 +55,8 @@ export function HUD({ gameRef, isPlaying, startTime }: HUDProps) {
           <span>俯仰视角</span>
           <span className="key">Esc</span>
           <span>释放鼠标</span>
+          <span className="key">E</span>
+          <span>打开信封</span>
         </div>
       </div>
 

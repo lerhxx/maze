@@ -98,7 +98,8 @@ export function Kilox({
     return () => sceneState.unregister(descriptionId);
   }, [descriptionId, pathCells]);
 
-  const showBubble = useSceneBubble(descriptionId);
+  useSceneBubble(descriptionId);
+  const showBubble = false;
 
   const robotSize = size * 0.2;
   const rBob = bobAmplitude ?? size * 0.02;

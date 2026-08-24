@@ -57,9 +57,6 @@ interface SakuraWallCellsProps {
   cells: Array<{ c: number; r: number }>;
 }
 
-/** 每格最多 5 棵（1 主 + 4 小） */
-const MAX_TREES_PER_CELL = 5;
-
 export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
   const gltf = useGLTF(SAKURA_URL);
   const { nodes, materials } = useGraph(gltf.scene as unknown as THREE.Object3D);
@@ -93,12 +90,12 @@ export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
       const size = new THREE.Vector3();
       sceneBox.getSize(size);
       const maxDim = Math.max(size.x, Math.max(size.y, size.z));
-      if (maxDim > 0) scale = CELL_SCALE / maxDim;
+      if (maxDim > 0) scale = CELL_SCALE * 2 / maxDim;
     }
     return { meshParts: result, normalizeScale: scale };
   }, [gltf.scene, nodes]);
 
-  // 预计算每格的树实例（1 主 + 3~4 小）
+  // 预计算每格的树实例（1 主 + 4~9 小）
   const treeInstances = useMemo(() => {
     const result: Array<{
       x: number; z: number; scale: number; yRot: number;
@@ -117,7 +114,7 @@ export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
       });
 
       // 3~4 棵小树：高度 0.2~0.5，围绕主树
-      const smallCount = 3 + Math.floor(rng() * 2); // 3..4
+      const smallCount = 4 + Math.floor(rng() * 6); // 3..4
       for (let i = 0; i < smallCount; i++) {
         const angle = (i / smallCount) * Math.PI * 2 + rng() * 0.5;
         const dist = 0.2 + rng() * 0.2; // 距中心 0.2~0.4 cell

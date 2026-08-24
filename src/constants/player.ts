@@ -1,4 +1,4 @@
-export const EYE_HEIGHT = 0.35;
+export const EYE_HEIGHT = 0.3;
 export const PLAYER_RADIUS = 0.1;
 
 // ===== Movement =====

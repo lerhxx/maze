@@ -80,7 +80,8 @@ export function Shopee({
     return () => sceneState.unregister(descriptionId);
   }, [descriptionId, pathCells]);
 
-  const showBubble = useSceneBubble(descriptionId);
+  useSceneBubble(descriptionId);
+  const showBubble = false;
 
   // 主模型 shopee-logo：保留原有的 0.3 缩放 + offsetY=0.35
   const shopee = useNormalizedModel(SHOPEE_URL, size, castShadow, receiveShadow);

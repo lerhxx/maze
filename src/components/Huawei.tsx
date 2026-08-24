@@ -39,7 +39,8 @@ export function Huawei({
     return () => sceneState.unregister(descriptionId);
   }, [descriptionId, pathCells]);
 
-  const showBubble = useSceneBubble(descriptionId);
+  useSceneBubble(descriptionId);
+  const showBubble = false;
 
   const gltf = useGLTF(HUAWEI_URL);
 

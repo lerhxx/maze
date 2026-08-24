@@ -259,7 +259,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
   const { contentMap, occupiedCells } = useMemo(() => {
     const pathLen = maze.solutionPath?.length ?? 0;
     if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>() };
-    const step = 3 / pathLen;
+    const step = 4 / pathLen;
     return findScenePlacements(maze, [
       {
         pathFraction: 1 / 3,
