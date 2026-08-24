@@ -80,10 +80,10 @@ export function useSceneState() {
   return sceneState;
 }
 
-/** 某个场景的气泡 hook：返回 showBubble */
+/** 某个场景的气泡 hook：返回 showBubble（弹窗打开时隐藏气泡） */
 export function useSceneBubble(id: DescriptionId): boolean {
   const s = useSceneState();
-  return s.activeSceneId === id;
+  return s.activeSceneId === id && s.openId === null;
 }
 
 /**

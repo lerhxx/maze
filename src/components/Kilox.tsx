@@ -10,7 +10,25 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const ROBOT_URL = '/model/robot.glb';
+const ROBOT_URLS = [
+  '/model/robot.glb',
+  '/model/robot-1.glb',
+  '/model/robot-2.glb',
+];
+
+/** 单个 robot 配置：位置偏移 + 浮动相位 */
+interface RobotConfig {
+  url: string;
+  offsetX: number;
+  offsetZ: number;
+  phase: number;
+}
+
+const ROBOT_CONFIGS: RobotConfig[] = [
+  { url: ROBOT_URLS[0], offsetX: -0.35, offsetZ: 0, phase: 0 },
+  { url: ROBOT_URLS[1], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
+  { url: ROBOT_URLS[2], offsetX: 0.35, offsetZ: 0, phase: Math.PI },
+];
 
 export interface KiloxProps {
   position: [number, number, number];
@@ -18,8 +36,6 @@ export interface KiloxProps {
   rotationY?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
-  orbitRadius?: number;
-  orbitSpeed?: number;
   bobAmplitude?: number;
   bobSpeed?: number;
   label?: string;
@@ -68,8 +84,6 @@ export function Kilox({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
-  orbitRadius,
-  orbitSpeed = 0.5,
   bobAmplitude,
   bobSpeed = 2,
   label,
@@ -86,37 +100,25 @@ export function Kilox({
 
   const showBubble = useSceneBubble(descriptionId);
 
-  // robot: 归一化到 size 的 0.2
   const robotSize = size * 0.2;
-  const robot = useNormalizedScene(ROBOT_URL, robotSize, castShadow, receiveShadow);
-
-  const robotRef = useRef<THREE.Object3D>(null);
-
-  // 轨道半径与浮动幅度
-  const rOrbit = orbitRadius ?? size * 1.65;
-  const rBob = bobAmplitude ?? size * 0.1;
-  const robotBaseY = robot.offsetY - 0.35;
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    if (robotRef.current) {
-      const angle = t * orbitSpeed;
-      // 上下浮动
-      robotRef.current.position.y = robotBaseY + Math.sin(t * bobSpeed) * rBob;
-      // 让 robot 朝向运动方向
-      robotRef.current.rotation.y = -angle + Math.PI / 2;
-    }
-  });
+  const rBob = bobAmplitude ?? size * 0.02;
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      <group position={[0, 0, 0]}>
-        <primitive
-          ref={robotRef as unknown as React.Ref<THREE.Object3D>}
-          object={robot.clonedScene}
-          scale={robot.normalizeScale}
+      {ROBOT_CONFIGS.map((cfg) => (
+        <Robot3D
+          key={cfg.url}
+          url={cfg.url}
+          offsetX={cfg.offsetX}
+          offsetZ={cfg.offsetZ}
+          phase={cfg.phase}
+          size={robotSize}
+          bobSpeed={bobSpeed}
+          bobAmp={rBob}
+          castShadow={castShadow}
+          receiveShadow={receiveShadow}
         />
-      </group>
+      ))}
 
       {label && (
         <Text
@@ -134,14 +136,62 @@ export function Kilox({
 
       {/* Envelope 放在（0.5, 0, 0.5）位置（相对于组件 size） */}
       <Envelope
-        position={[0.5, 0, 0.5]}
-        size={size * 0.35}
+        position={[-0.02, 0.1, 0.4]}
+        size={size * 0.15}
         animated
         showBubble={showBubble}
         castShadow={castShadow}
         receiveShadow={receiveShadow}
       />
     </group>
+  );
+}
+
+/** 单个 robot：加载模型 + 上下浮动动画（按 phase 错开） */
+function Robot3D({
+  url,
+  offsetX,
+  offsetZ,
+  phase,
+  size,
+  bobSpeed,
+  bobAmp,
+  castShadow,
+  receiveShadow,
+}: {
+  url: string;
+  offsetX: number;
+  offsetZ: number;
+  phase: number;
+  size: number;
+  bobSpeed: number;
+  bobAmp: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+}) {
+  const { clonedScene, normalizeScale, offsetY } = useNormalizedScene(
+    url,
+    size,
+    castShadow,
+    receiveShadow,
+  );
+  const ref = useRef<THREE.Object3D>(null);
+  const baseY = offsetY + 0.1;
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ref.current) {
+      ref.current.position.y = baseY + Math.sin(t * bobSpeed + phase) * bobAmp;
+    }
+  });
+
+  return (
+    <primitive
+      ref={ref as unknown as React.Ref<THREE.Object3D>}
+      object={clonedScene}
+      scale={normalizeScale}
+      position={[offsetX, baseY, offsetZ]}
+    />
   );
 }
 
