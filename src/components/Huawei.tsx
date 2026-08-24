@@ -94,8 +94,8 @@ export function Huawei({
       )}
 
       <Envelope
-        position={[0.5, 0, 0.5]}
-        size={size * 0.35}
+        position={[-0.0, 0.1, 0.5]}
+        size={size * 0.15}
         animated
         showBubble={showBubble}
         castShadow={castShadow}

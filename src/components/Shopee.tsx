@@ -132,21 +132,21 @@ export function Shopee({
       {/* 主 shopee-logo */}
       <primitive
         object={shopee.clonedScene}
-        position={[0, 0.2, 0]}
-        scale={shopee.normalizeScale * 0.3}
+        position={[0, 0.3, 0]}
+        scale={shopee.normalizeScale * 0.8}
       />
 
       {/* shebi：左侧（减小 X 偏移确保在墙格内） */}
       <primitive
         object={shebi.clonedScene}
-        position={[-size * 0.35, shebi.offsetY + 0.05, 0]}
+        position={[-size * 0.45, shebi.offsetY + 0.05, 0.15]}
         scale={shebi.normalizeScale * 0.01}
       />
 
       {/* hebi：右侧 */}
       <primitive
         object={hebi.clonedScene}
-        position={[size * 0.35, hebi.offsetY + 0.05, 0]}
+        position={[size * 0.4, hebi.offsetY + 0.05, 0.1]}
         scale={hebi.normalizeScale * 0.01}
       />
 
@@ -165,7 +165,7 @@ export function Shopee({
       )}
 
       <Envelope
-        position={[-0.02, 0.1, 0.4]}
+        position={[-0.02, 0.1, 0.5]}
         size={size * 0.15}
         animated
         showBubble={showBubble}
