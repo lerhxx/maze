@@ -16,7 +16,10 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   hard: '困难',
 };
 
-export const USE_MOUSE = false;
+export const USE_MOUSE = true;
 
 /** true: 用 Three.js 程序化草地（GrassCellsProcedural）；false: 用 grass.glb 模型 */
 export const IS_PURE_GRASS = false;
+
+/** true: 显示海洋颜色调试面板（运行时可调整深水/浅水/泡沫颜色） */
+export const OCEAN_DEBUG = false;

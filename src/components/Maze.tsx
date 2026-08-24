@@ -16,6 +16,7 @@ import {
 import { Shopee } from './Shopee';
 import { Kilox } from './Kilox';
 import { Huawei } from './Huawei';
+import { Ocean } from './Ocean';
 
 // ===== 场景放置逻辑 =====
 
@@ -292,6 +293,9 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
 
   return (
     <group>
+      {/* 海洋（迷宫四周） */}
+      <Ocean width={w} height={h} />
+
       {/* Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
