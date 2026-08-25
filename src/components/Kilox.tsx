@@ -4,6 +4,7 @@ import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
 import { Envelope } from './Envelope';
+import { SceneFence } from './Fence';
 import {
   sceneState,
   useSceneBubble,
@@ -144,6 +145,9 @@ export function Kilox({
         castShadow={castShadow}
         receiveShadow={receiveShadow}
       />
+
+      {/* 围栏：单元格 3 个侧面各 4 个 fence */}
+      <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />
     </group>
   );
 }

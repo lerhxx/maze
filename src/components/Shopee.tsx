@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { CELL_SCALE } from '../constants/global';
 import { Envelope } from './Envelope';
+import { SceneFence } from './Fence';
 import {
   sceneState,
   useSceneBubble,
@@ -81,7 +82,6 @@ export function Shopee({
   }, [descriptionId, pathCells]);
 
   useSceneBubble(descriptionId);
-  const showBubble = false;
 
   // 主模型 shopee-logo：保留原有的 0.3 缩放 + offsetY=0.35
   const shopee = useNormalizedModel(SHOPEE_URL, size, castShadow, receiveShadow);
@@ -168,10 +168,12 @@ export function Shopee({
         position={[-0.02, 0.1, 0.5]}
         size={size * 0.15}
         animated
-        showBubble={showBubble}
         castShadow={castShadow}
         receiveShadow={receiveShadow}
       />
+
+      {/* 围栏：单元格 3 个侧面各 4 个 fence */}
+      <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />
     </group>
   );
 }

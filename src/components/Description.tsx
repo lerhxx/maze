@@ -47,8 +47,7 @@ export function Description({ id, onClose }: DescriptionProps) {
         style={{
           position: 'relative',
           width: 'min(600px, 90vw)',
-          maxHeight: '80vh',
-          padding: '60px 56px 48px',
+          height: '100vh',
           backgroundImage: 'url(/desc.png)',
           backgroundSize: '100% 100%',
           backgroundRepeat: 'no-repeat',
@@ -63,7 +62,8 @@ export function Description({ id, onClose }: DescriptionProps) {
         <h1
           style={{
             margin: 0,
-            fontSize: 28,
+            marginTop: 100,
+            fontSize: 35,
             fontWeight: 700,
             textAlign: 'center',
             color: '#5a3a1a',
@@ -87,7 +87,7 @@ export function Description({ id, onClose }: DescriptionProps) {
         </div>
 
         {/* 关闭提示 */}
-        <div
+        {/* <div
           style={{
             marginTop: 20,
             fontSize: 12,
@@ -96,18 +96,18 @@ export function Description({ id, onClose }: DescriptionProps) {
           }}
         >
           按 <kbd style={kbdStyle}>E</kbd> 关闭
-        </div>
+        </div> */}
 
         {/* 分段描述 */}
-        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 100px', marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {data.desc.map((item, i) => (
             <section
               key={i}
               style={{
-                padding: '14px 18px',
-                background: 'rgba(90, 58, 26, 0.06)',
+                // padding: '14px 18px',
+                // background: 'rgba(90, 58, 26, 0.06)',
                 borderRadius: 10,
-                borderLeft: '4px solid #c49860',
+                // borderLeft: '4px solid #c49860',
               }}
             >
               <div

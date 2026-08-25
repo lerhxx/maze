@@ -3,6 +3,7 @@ import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
 import { Envelope } from './Envelope';
+import { SceneFence } from './Fence';
 import {
   sceneState,
   useSceneBubble,
@@ -59,7 +60,7 @@ export function Huawei({
       box.getSize(s);
       const maxDim = Math.max(s.x, Math.max(s.y, s.z));
       if (maxDim > 0) scale = size / maxDim;
-      yOff = -box.min.y * scale;
+      yOff = -box.min.y * scale + 0.1;
     }
     cloned.traverse((obj) => {
       const maybeMesh = obj as unknown as { isMesh?: boolean };
@@ -101,6 +102,9 @@ export function Huawei({
         castShadow={castShadow}
         receiveShadow={receiveShadow}
       />
+
+      {/* 围栏：单元格 3 个侧面各 4 个 fence */}
+      <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />
     </group>
   );
 }
