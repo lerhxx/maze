@@ -100,7 +100,7 @@ export function Description({ id, onClose }: DescriptionProps) {
 
         {/* 分段描述 */}
         <div style={{ padding: '0 100px', marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {data.desc.map((item, i) => (
+          {data.desc?.map((item, i) => (
             <section
               key={i}
               style={{
@@ -124,22 +124,21 @@ export function Description({ id, onClose }: DescriptionProps) {
             </section>
           ))}
         </div>
+
+        {/* 感想 */}
+        <section
+          style={{
+            // padding: '14px 18px',
+            // background: 'rgba(90, 58, 26, 0.06)',
+            borderRadius: 10,
+            // borderLeft: '4px solid #c49860',
+          }}
+        >
+          <div style={{ fontSize: 14, color: '#5a4a3a' }}>{data.think}</div>
+        </section>
       </div>
     </div>
   );
 }
-
-const kbdStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '2px 8px',
-  margin: '0 2px',
-  background: '#fff',
-  border: '1px solid #c49860',
-  borderRadius: 4,
-  fontFamily: 'monospace',
-  fontSize: 12,
-  fontWeight: 700,
-  color: '#5a3a1a',
-};
 
 export default Description;

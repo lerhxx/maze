@@ -40,7 +40,7 @@ export const descriptions = {
     ],
     think: '',
   },
-  17: {
+  amiba: {
     title: '阿米巴有限公司',
     date: '2017-10 至 2019-07',
     desc: [

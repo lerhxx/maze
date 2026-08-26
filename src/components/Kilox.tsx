@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
-import { Envelope } from './Envelope';
+import { EnvelopeLine } from './EnvelopeLine2';
 import { SceneFence } from './Fence';
 import {
   sceneState,
@@ -100,7 +100,6 @@ export function Kilox({
   }, [descriptionId, pathCells]);
 
   useSceneBubble(descriptionId);
-  const showBubble = false;
 
   const robotSize = size * 0.2;
   const rBob = bobAmplitude ?? size * 0.02;
@@ -136,14 +135,10 @@ export function Kilox({
         </Text>
       )}
 
-      {/* Envelope 放在（0.5, 0, 0.5）位置（相对于组件 size） */}
-      <Envelope
-        position={[-0.02, 0.1, 0.4]}
-        size={size * 0.15}
-        animated
-        showBubble={showBubble}
-        castShadow={castShadow}
-        receiveShadow={receiveShadow}
+      {/* EnvelopeLine 粒子信封 */}
+      <EnvelopeLine
+        svgUrl='/envelope.svg'
+        position={[-0.02, 0.2, 0.4]}
       />
 
       {/* 围栏：单元格 3 个侧面各 4 个 fence */}

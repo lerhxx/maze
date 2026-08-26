@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { Sparkles, Text } from '@react-three/drei'
 import { CELL_SCALE } from '../constants/global'
 import { buildDigitGeometry, materialProps, Crystals } from './LowPoly'
-import { Envelope } from './Envelope'
+import { EnvelopeLine } from './EnvelopeLine'
 import { SceneFence } from './Fence'
 import {
   sceneState,
@@ -55,7 +55,7 @@ export function Amiba({
   castShadow = true,
   receiveShadow = true,
   label,
-  descriptionId = 17,
+  descriptionId = 'amiba',
   pathCells,
 }: AmibaProps) {
   const group = useRef<THREE.Group>(null)
@@ -69,7 +69,7 @@ export function Amiba({
     return () => sceneState.unregister(descriptionId);
   }, [descriptionId, pathCells]);
 
-  const showBubble = useSceneBubble(descriptionId);
+  useSceneBubble(descriptionId);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
@@ -107,13 +107,9 @@ export function Amiba({
         </Text>
       )}
 
-      <Envelope
+      <EnvelopeLine
+        svgUrl='/envelope.svg'
         position={[0.5, 0, 0.5]}
-        size={size * 0.35}
-        animated
-        showBubble={showBubble}
-        castShadow={castShadow}
-        receiveShadow={receiveShadow}
       />
 
       <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />

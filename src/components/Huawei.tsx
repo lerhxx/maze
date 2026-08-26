@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
-import { Envelope } from './Envelope';
+import { EnvelopeLine } from './EnvelopeLine';
 import { SceneFence } from './Fence';
 import {
   sceneState,
@@ -41,7 +41,6 @@ export function Huawei({
   }, [descriptionId, pathCells]);
 
   useSceneBubble(descriptionId);
-  const showBubble = false;
 
   const gltf = useGLTF(HUAWEI_URL);
 
@@ -94,13 +93,9 @@ export function Huawei({
         </Text>
       )}
 
-      <Envelope
-        position={[-0.0, 0.1, 0.5]}
-        size={size * 0.15}
-        animated
-        showBubble={showBubble}
-        castShadow={castShadow}
-        receiveShadow={receiveShadow}
+      <EnvelopeLine
+        svgUrl='/envelope.svg'
+        position={[0, 0.1, 0.5]}
       />
 
       {/* 围栏：单元格 3 个侧面各 4 个 fence */}

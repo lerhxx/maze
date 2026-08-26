@@ -26,7 +26,6 @@ function App() {
     const { w, h } = DIFFICULTY_SIZES[diff];
     setDifficulty(diff);
     setMaze(generateMaze(w, h));
-    console.log('maze', maze)
     setStatus('playing');
   };
 

@@ -4,7 +4,7 @@ import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { CELL_SCALE } from '../constants/global';
-import { Envelope } from './Envelope';
+import { EnvelopeLine } from './EnvelopeLine';
 import { SceneFence } from './Fence';
 import {
   sceneState,
@@ -164,12 +164,9 @@ export function Shopee({
         </Text>
       )}
 
-      <Envelope
+      <EnvelopeLine
+        svgUrl='/envelope.svg'
         position={[-0.02, 0.1, 0.5]}
-        size={size * 0.15}
-        animated
-        castShadow={castShadow}
-        receiveShadow={receiveShadow}
       />
 
       {/* 围栏：单元格 3 个侧面各 4 个 fence */}

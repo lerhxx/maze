@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { MazeData, PathCell, PathDirection } from '../game/types';
 import { CELL_SCALE } from '../constants/global';
 import { ExitPortal } from './ExitPortal';
+import { LightBeam } from './LightBeam';
 import { GrassCellsRenderer as GrassCells } from './GrassCells';
 import {
   InteriorTreesCells,
@@ -100,11 +101,12 @@ function findScenePlacements(
   maze: MazeData,
   placements: ScenePlacement[],
   maxSearchOffset = 20,
-): { contentMap: Map<string, ReactNode>; occupiedCells: Set<string> } {
+): { contentMap: Map<string, ReactNode>; occupiedCells: Set<string>; scenePathCells: Array<{ c: number; r: number }> } {
   const contentMap = new Map<string, ReactNode>();
   const occupiedCells = new Set<string>();
+  const scenePathCells: Array<{ c: number; r: number }> = [];
   const path = maze.solutionPath;
-  if (!path || path.length < 4) return { contentMap, occupiedCells };
+  if (!path || path.length < 4) return { contentMap, occupiedCells, scenePathCells };
   const w = maze.width;
   const h = maze.height;
 
@@ -155,6 +157,11 @@ function findScenePlacements(
             occupiedCells.add(`${wc.c}-${wc.r}`);
           }
 
+          // 收集场景对应的道路单元格
+          for (const pc of segmentPathCells) {
+            scenePathCells.push({ c: pc.c, r: pc.r });
+          }
+
           // 所有墙格放组件
           if (wallCells.length > 0) {
             // 组件中心 = 所有墙格的中心
@@ -195,7 +202,7 @@ function findScenePlacements(
     }
   }
 
-  return { contentMap, occupiedCells };
+  return { contentMap, occupiedCells, scenePathCells };
 }
 
 /** 渲染场景放置点 */
@@ -229,9 +236,9 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
   const { width: w, height: h } = maze;
 
   // 用 findScenePlacements 查找场景放置点（先算，后面 grass/树需要用 occupiedCells 过滤）
-  const { contentMap, occupiedCells } = useMemo(() => {
+  const { contentMap, occupiedCells, scenePathCells } = useMemo(() => {
     const pathLen = maze.solutionPath?.length ?? 0;
-    if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>() };
+    if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>(), scenePathCells: [] as Array<{ c: number; r: number }> };
     const step = 5 / pathLen;
     return findScenePlacements(maze, [
       {
@@ -327,6 +334,16 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
 
       {/* 场景放置点（Kilox / Huawei / Shopee + label） */}
       <ScenePlacements contentMap={contentMap} />
+
+      {/* 场景对应道路单元格上的光柱 */}
+      {/* {scenePathCells.map(({ c, r }) => (
+        <LightBeam
+          key={`beam-${c}-${r}`}
+          position={[(c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE]}
+          radiusTop={CELL_SCALE * 0.2}
+          radiusBottom={CELL_SCALE * 0.2}
+        />
+      ))} */}
 
       {/* 迷宫四边：樱花树贴边围绕（每格 1 棵，最高 1 cell 高度） */}
       <PerimeterSakuraCells cells={perimeterSakuraCells} />
