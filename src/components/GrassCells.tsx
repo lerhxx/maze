@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CELL_SCALE, IS_PURE_GRASS } from '../constants/global';
 
-const GRASS_URL = '/model/grass.glb';
+const GRASS_URL = `${import.meta.env.BASE_URL}/model/grass.glb`;
 
 export interface GrassCellsProps {
   cells: Array<{ c: number; r: number }>;

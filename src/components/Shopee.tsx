@@ -12,9 +12,10 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const SHOPEE_URL = '/model/shopee-logo.glb';
-const SHEBI_URL = '/model/shebi-2.glb';
-const HEBI_URL = '/model/hebi-1.glb';
+const base = import.meta.env.BASE_URL;
+const SHOPEE_URL = `${base}/model/shopee-logo.glb`;
+const SHEBI_URL = `${base}/model/shebi-2.glb`;
+const HEBI_URL = `${base}/model/hebi-1.glb`;
 
 export interface ShopeeProps {
   position: [number, number, number];

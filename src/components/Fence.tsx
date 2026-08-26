@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
-const FENCE_URL = '/model/wooden-fence.glb';
+const FENCE_URL = `${import.meta.env.BASE_URL}/model/wooden-fence.glb`;
 
 export interface FenceProps {
   position?: [number, number, number];

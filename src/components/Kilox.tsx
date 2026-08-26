@@ -11,10 +11,11 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
+const base = import.meta.env.BASE_URL;
 const ROBOT_URLS = [
-  '/model/robot.glb',
-  '/model/robot-1.glb',
-  '/model/robot-2.glb',
+  `${base}/model/robot.glb`,
+  `${base}/model/robot-1.glb`,
+  `${base}/model/robot-2.glb`,
 ];
 
 /** 单个 robot 配置：位置偏移 + 浮动相位 */
@@ -137,8 +138,7 @@ export function Kilox({
 
       {/* EnvelopeLine 粒子信封 */}
       <EnvelopeLine
-        svgUrl='/envelope.svg'
-        position={[-0.02, 0.2, 0.4]}
+        position={[-0.02, 0.1, 0.4]}
       />
 
       {/* 围栏：单元格 3 个侧面各 4 个 fence */}

@@ -211,7 +211,7 @@ export interface EnvelopeLineProps {
 
 export function EnvelopeLine({
   position = [0, 0, 0],
-  size = 0.15,
+  size = 0.1,
   maxCount = 4000,
   color = '#ff8cc8',
 }: EnvelopeLineProps) {
