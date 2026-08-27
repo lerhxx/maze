@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { CELL_SCALE } from '../constants/global';
 import { EnvelopeLine } from './EnvelopeLine';
-import { SceneFence } from './Fence';
 import {
   sceneState,
   useSceneBubble,
@@ -169,9 +168,6 @@ export function Shopee({
         svgUrl='/envelope.svg'
         position={[-0.02, 0.1, 0.5]}
       />
-
-      {/* 围栏：单元格 3 个侧面各 4 个 fence */}
-      <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />
     </group>
   );
 }

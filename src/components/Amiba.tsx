@@ -5,7 +5,6 @@ import { Sparkles, Text } from '@react-three/drei'
 import { CELL_SCALE } from '../constants/global'
 import { buildDigitGeometry, materialProps, Crystals } from './LowPoly'
 import { EnvelopeLine } from './EnvelopeLine'
-import { SceneFence } from './Fence'
 import {
   sceneState,
   useSceneBubble,
@@ -112,7 +111,6 @@ export function Amiba({
         position={[0.5, 0, 0.5]}
       />
 
-      <SceneFence cellSize={CELL_SCALE} castShadow={castShadow} receiveShadow={receiveShadow} />
     </group>
   )
 }
