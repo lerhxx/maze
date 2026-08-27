@@ -78,7 +78,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
     <div className="game-container">
       <Canvas
         camera={{
-          fov: 75,
+          fov: 45,
           near: 0.1,
           far: 50,
           position: [(maze.startCol + 0.5) * CELL_SCALE, EYE_HEIGHT, (maze.startRow + 0.5) * CELL_SCALE],

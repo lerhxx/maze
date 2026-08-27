@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { Sparkles, Text } from '@react-three/drei'
 import { CELL_SCALE } from '../constants/global'
 import { buildDigitGeometry, materialProps, Crystals } from './LowPoly'
-import { EnvelopeLine } from './EnvelopeLine'
+import { EnvelopeLine } from './EnvelopeLine2'
 import {
   sceneState,
   useSceneBubble,
@@ -82,7 +82,7 @@ export function Amiba({
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <group ref={group} position={[0, size * 0.25, 0]} scale={digitScale}>
-        <Sparkles count={70} scale={[5, 3, 3]} size={1.5} speed={0.05} color="#FF8C42" opacity={0.65} />
+        <Sparkles count={30} scale={[5, 3, 3]} size={1.5} speed={0.05} color="#FF8C42" opacity={0.65} />
         <mesh geometry={one} position={[-0.9, 0, 0]} castShadow={castShadow} receiveShadow={receiveShadow}>
           <meshStandardMaterial {...materialProps} />
         </mesh>
@@ -107,8 +107,7 @@ export function Amiba({
       )}
 
       <EnvelopeLine
-        svgUrl='/envelope.svg'
-        position={[0.5, 0, 0.5]}
+        position={[-0.02, 0.1, 0.4]}
       />
 
     </group>

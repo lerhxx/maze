@@ -243,13 +243,22 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       {
         pathFraction: 1 / 4,
         length: 1,
-        descriptionId: 'Kilox',
+        descriptionId: 'amiba',
         generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Kilox position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+          <Amiba position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
       {
         pathFraction: 1 / 4 + step,
+        length: 1,
+        descriptionId: 'Shopee',
+        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
+          <Shopee position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        ),
+        
+      },
+      {
+        pathFraction: 1 / 4 + step * 2,
         length: 1,
         descriptionId: 'Huawei',
         generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
@@ -257,19 +266,11 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         ),
       },
       {
-        pathFraction: 1 / 4 + step * 2,
-        length: 1,
-        descriptionId: 'Shopee',
-        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Shopee position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
-        ),
-      },
-      {
         pathFraction: 1 / 4 + step * 3,
         length: 1,
-        descriptionId: 'amiba',
+        descriptionId: 'Kilox',
         generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Amiba position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+          <Kilox position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
     ]);
