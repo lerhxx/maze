@@ -13,8 +13,8 @@ import {
 
 const base = import.meta.env.BASE_URL;
 const SHOPEE_URL = `${base}/models/shopee.glb`;
-const SHEBI_URL = `${base}/models/shebi-2.glb`;
-const HEBI_URL = `${base}/models/hebi-1.glb`;
+const SHEBI_URL = `${base}/models/shebi.glb`;
+const HEBI_URL = `${base}/models/hebi.glb`;
 
 export interface ShopeeProps {
   position: [number, number, number];
