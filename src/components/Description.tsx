@@ -79,7 +79,6 @@ export function Description({ id, onClose }: DescriptionProps) {
           {/* 日期 */}
           <div
             style={{
-              margin: '8px 0',
               fontSize: 14,
               textAlign: 'center',
               color: '#8a6a3f',
@@ -123,7 +122,7 @@ export function Description({ id, onClose }: DescriptionProps) {
           </div> */}
 
           {/* 感想 */}
-          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.thinks?.map((item, i) => (
               <section key={i}>
                 <div style={{ fontSize: 14, color: '#5a4a3a' }}>{item}</div>

@@ -17,11 +17,11 @@ export const descriptions = {
       '谁让我是3D狂热粉呢？为了摸到3D开发的门槛，果断跳进了这家机器人公司。',
       '在编辑地图的三维空间转啊转，快乐得像在搭积木！',
       '然而……天不遂人愿，公司突然宣布解散，我的3D梦被迫“暂停更新”。',
-      '不过没关系，这段经历够我吹一阵子了，江湖路远，咱们下个项目见！🚀'
+      '不过没关系，江湖路远，咱们下个项目见！🚀'
     ]
   },
   Huawei: {
-    title: '华为有限公司',
+    title: '华为',
     subTitle: '卷并友善着',
     date: '2023-04 至 2026-02',
     desc: [
@@ -37,7 +37,7 @@ export const descriptions = {
     ],
   },
   Shopee: {
-    title: '虾皮有限公司',
+    title: '虾皮',
     subTitle: '白月光本光',
     date: '2019-09 至 2022-10',
     desc: [
@@ -58,7 +58,7 @@ export const descriptions = {
     ],
   },
   amiba: {
-    title: '阿米巴有限公司',
+    title: '阿米巴',
     subTitle: '梦开始的地方',
     date: '2017-10 至 2019-07',
     desc: [
