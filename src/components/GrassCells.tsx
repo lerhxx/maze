@@ -31,6 +31,9 @@ const QUAD_PER_CELL = QUAD_OFFSETS.length;
 export function GrassCells({ cells }: GrassCellsProps) {
   const totalCount = cells.length * QUAD_PER_CELL;
   const gltf = useGLTF(GRASS_URL);
+  // const texture = useTexture(GRASS_TEXTURE_URL);
+  // texture.flipY = false;
+  // texture.colorSpace = THREE.SRGBColorSpace;
   const { nodes, materials } = useGraph(gltf.scene as unknown as THREE.Object3D);
 
   const { merged, material } = useMemo<{
@@ -51,6 +54,7 @@ export function GrassCells({ cells }: GrassCellsProps) {
         const srcMat = Array.isArray(m.material)
           ? (m.material[0] as THREE.Material)
           : (m.material as THREE.Material);
+
         if (srcMat) {
           const anyMat = srcMat as unknown as { color?: THREE.ColorRepresentation; map?: THREE.Texture | null };
           const lmb = new THREE.MeshLambertMaterial();

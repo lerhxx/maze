@@ -12,9 +12,9 @@ import {
 
 const base = import.meta.env.BASE_URL;
 const ROBOT_URLS = [
-  `${base}/models/robot.glb`,
-  `${base}/models/robot-1.glb`,
-  `${base}/models/robot-2.glb`,
+  `${base}/models/robot-blue.glb`,
+  `${base}/models/robot-green.glb`,
+  `${base}/models/robot-pink.glb`,
 ];
 
 /** 单个 robot 配置：位置偏移 + 浮动相位 */

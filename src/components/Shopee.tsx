@@ -12,7 +12,7 @@ import {
 } from '../state/sceneStore';
 
 const base = import.meta.env.BASE_URL;
-const SHOPEE_URL = `${base}/models/shopee-logo.glb`;
+const SHOPEE_URL = `${base}/models/shopee.glb`;
 const SHEBI_URL = `${base}/models/shebi-2.glb`;
 const HEBI_URL = `${base}/models/hebi-1.glb`;
 
