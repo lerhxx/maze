@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
 
 // GLTF 资产位置
-const SAKURA_URL = `${import.meta.env.BASE_URL}/model/sakura-tree.glb`;
+const SAKURA_URL = `${import.meta.env.BASE_URL}/models/sakura-tree.glb`;
 
 /** (c,r) 种子的确定性 LCG 伪随机 */
 export function createLcg(c: number, r: number) {

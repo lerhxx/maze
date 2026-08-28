@@ -9,7 +9,7 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const HUAWEI_URL = `${import.meta.env.BASE_URL}/model/huawei.glb`;
+const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
 
 export interface HuaweiProps {
   position: [number, number, number];
