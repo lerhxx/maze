@@ -7,9 +7,7 @@ import { Player } from './SpherePlayer';
 import { HUD } from './HUD';
 import { Description } from './Description';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
-import { EYE_HEIGHT } from '../constants/player';
 import { CELL_SCALE } from '../constants/global';
-import { OrbitControls } from '@react-three/drei';
 import { Perf } from 'r3f-perf';
 import { sceneState, useSceneState, type DescriptionId } from '../state/sceneStore';
 
@@ -78,15 +76,19 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
     <div className="game-container">
       <Canvas
         camera={{
-          fov: 45,
+          fov: 55,
           near: 0.1,
           far: 50,
-          position: [(maze.startCol + 0.5) * CELL_SCALE, EYE_HEIGHT, (maze.startRow + 0.5) * CELL_SCALE],
+          // 初始位置：起点后上方（首帧会被跟随相机覆盖）
+          position: [
+            (maze.startCol + 0.5) * CELL_SCALE,
+            1.7,
+            (maze.startRow + 0.5) * CELL_SCALE + 1.8,
+          ],
         }}
         className="game-canvas"
       >
         <Perf position="top-left" />
-        <OrbitControls />
         <SceneContent maze={maze} gameRef={gameRef} onWin={handleWin} />
       </Canvas>
 

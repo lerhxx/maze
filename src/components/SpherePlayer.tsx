@@ -1,16 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GameRef, MazeData, PathDirection } from '../game/types';
 import { canMove } from '../game/mazeGenerator';
 import {
-  EYE_HEIGHT,
   PLAYER_RADIUS,
   MOVE_SPEED,
   TURN_SPEED,
   MOUSE_SENSITIVITY,
+  RUN_SPEED_MULTIPLIER,
+  WALK_ANIM_SPEED,
+  RUN_ANIM_SPEED,
+  ANIM_BLEND_RATE,
 } from '../constants/player';
-import { TORCH_INTENSITY } from '../constants/light';
 import { CELL_SCALE, USE_MOUSE } from '../constants/global';
 import { updatePlayerPathCell } from '../state/sceneStore';
 
@@ -18,6 +21,14 @@ import { updatePlayerPathCell } from '../state/sceneStore';
 const MAX_STEP = 0.2 * CELL_SCALE;
 // 走到墙边时留一点 epsilon，防止贴墙抖动
 const MOVE_EPSILON = 0.05;
+
+const PLAYER_URL = `${import.meta.env.BASE_URL}/models/player.glb`;
+
+// 模型本体高约 1.7，脚底在 y=0；Mixamo 模型默认面向 +Z，
+// 而本游戏 forward(yaw=0) = -Z，故需要 π 的朝向补偿。
+const MODEL_YAW_OFFSET = Math.PI;
+// 目标高度 = 单元格的一半（CELL_SCALE / 2 = 0.5），模型高 1.7 → 缩放比
+const MODEL_SCALE = 0.3 / 1.7;
 
 /** 将路径方向 (t/r/b/l) 转换为相机 yaw 值
  *  forward = (-sin(yaw), -cos(yaw))
@@ -52,8 +63,23 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   const pitchRef = useRef(0);
   const posRef = useRef({ x: (maze.startCol + 0.5) * CELL_SCALE, z: (maze.startRow + 0.5) * CELL_SCALE });
   const isLockedRef = useRef(false);
-  const torchRef = useRef<THREE.PointLight>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const wonRef = useRef(false);
+  // 动画当前 timeScale（平滑过渡用）
+  const animSpeedRef = useRef(0);
+
+  const { scene: playerModel, animations } = useGLTF(PLAYER_URL);
+  const { actions, mixer } = useAnimations(animations, groupRef);
+
+  // 播放唯一的 walking_man clip（走路/跑步/静止靠 timeScale 区分）
+  useEffect(() => {
+    const clip = animations[0];
+    const action = clip && actions[clip.name];
+    if (action) {
+      action.play();
+      mixer.timeScale = 0; // 初始静止
+    }
+  }, [actions, animations, mixer]);
 
   // Reset when maze changes
   useEffect(() => {
@@ -165,9 +191,13 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
 
     // Normalize and apply speed
     const len = Math.sqrt(dx * dx + dz * dz);
-    if (len > 0) {
-      dx = (dx / len) * MOVE_SPEED * dt;
-      dz = (dz / len) * MOVE_SPEED * dt;
+    const isRunning =
+      keysRef.current.has('ShiftLeft') || keysRef.current.has('ShiftRight');
+    const isMoving = len > 0;
+    if (isMoving) {
+      const speed = MOVE_SPEED * (isRunning ? RUN_SPEED_MULTIPLIER : 1);
+      dx = (dx / len) * speed * dt;
+      dz = (dz / len) * speed * dt;
 
       // 把整帧位移拆成小步迭代（防高速跨格穿墙）。
       // 每轴分别推进，遇到墙就停在该轴（保留另一轴继续 → 实现滑墙）。
@@ -198,20 +228,40 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       }
     }
 
-    
+    // --- Update player model & animation ---
+    if (groupRef.current) {
+      const px = posRef.current.x;
+      const pz = posRef.current.z;
+      groupRef.current.position.set(px, 0, pz); // 脚底贴地
+      // 模型朝向跟随 yaw（+π 补偿 glTF 默认 +Z 朝向）
+      groupRef.current.rotation.y = yawRef.current + MODEL_YAW_OFFSET;
 
-    // --- Update torch light ---
-    if (torchRef.current) {
-      torchRef.current.position.set(posRef.current.x, EYE_HEIGHT, posRef.current.z);
-      // Slight flicker for atmosphere
-      const flicker = 1 + Math.sin(performance.now() * 0.012) * 0.06 + Math.sin(performance.now() * 0.03) * 0.03;
-      torchRef.current.intensity = TORCH_INTENSITY * flicker;
+      // 动画状态机：静止 0 / 走路 1.0 / 跑步 1.8（timeScale 平滑插值 → 自然过渡）
+      const targetSpeed = !isMoving ? 0 : isRunning ? RUN_ANIM_SPEED : WALK_ANIM_SPEED;
+      const blend = 1 - Math.exp(-ANIM_BLEND_RATE * dt);
+      animSpeedRef.current = THREE.MathUtils.lerp(animSpeedRef.current, targetSpeed, blend);
+      mixer.timeScale = animSpeedRef.current * 3;
 
       if (USE_MOUSE) {
-        // --- Update camera ---å
-        camera.position.set(posRef.current.x, EYE_HEIGHT, posRef.current.z);
-        camera.rotation.set(pitchRef.current, yawRef.current, 0, 'YXZ');
-        // camera.lookAt(torchRef.current.position )
+        // 越肩视角：相机位于 player 后上方，视线越过 player 投向前方道路
+        // behind = -forward；forward = (forwardX, forwardZ)
+        // 高度按缩小后的模型（0.5 高）调整
+        const camDist = 0.5;    // 身后距离
+        const camHeight = 0.45; // 胸口高度
+        camera.position.set(
+          px - forwardX * camDist,
+          camHeight,
+          pz - forwardZ * camDist,
+        );
+        // 视线看向 player 前方的点 → player 落在画面下方偏中央
+        // 鼠标上下（pitch）控制视线俯仰：正值抬头看更远处
+        const lookAhead = 1.5;
+        const lookHeight = pitchRef.current * 1.0;
+        camera.lookAt(
+          px + forwardX * lookAhead,
+          lookHeight,
+          pz + forwardZ * lookAhead,
+        );
       }
     }
 
@@ -250,16 +300,11 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   });
 
   return (
-    // <pointLight
-    //   ref={torchRef}
-    //   color={TORCH_COLOR}
-    //   intensity={TORCH_INTENSITY}
-    //   distance={TORCH_DISTANCE}
-    //   decay={2}
-    // />
-    <mesh ref={torchRef}>
-      <icosahedronGeometry args={[ PLAYER_RADIUS, 1 ]} />
-      <meshStandardMaterial flatShading color="cyan" />
-    </mesh>
+    <group ref={groupRef} scale={MODEL_SCALE}>
+      <primitive object={playerModel} />
+    </group>
   );
 }
+
+// 预加载模型，避免进入游戏时卡顿
+useGLTF.preload(PLAYER_URL);

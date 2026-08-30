@@ -12,9 +12,10 @@ import {
 
 const base = import.meta.env.BASE_URL;
 const ROBOT_URLS = [
-  `${base}/models/robot-blue.glb`,
-  `${base}/models/robot-green.glb`,
-  `${base}/models/robot-pink.glb`,
+  // `${base}/models/robot-blue.glb`,
+  // `${base}/models/robot-green.glb`,
+  // `${base}/models/robot-pink.glb`,
+  `${base}/models/kilox-95.glb`,
 ];
 
 /** 单个 robot 配置：位置偏移 + 浮动相位 */
@@ -26,9 +27,10 @@ interface RobotConfig {
 }
 
 const ROBOT_CONFIGS: RobotConfig[] = [
-  { url: ROBOT_URLS[0], offsetX: -0.35, offsetZ: 0, phase: 0 },
-  { url: ROBOT_URLS[1], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
-  { url: ROBOT_URLS[2], offsetX: 0.35, offsetZ: 0, phase: Math.PI },
+  // { url: ROBOT_URLS[0], offsetX: -0.35, offsetZ: 0, phase: 0 },
+  // { url: ROBOT_URLS[1], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
+  // { url: ROBOT_URLS[2], offsetX: 0.35, offsetZ: 0, phase: Math.PI },
+  { url: ROBOT_URLS[0], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
 ];
 
 export interface KiloxProps {

@@ -110,7 +110,7 @@ export function GrassCells({ cells }: GrassCellsProps) {
       const cellCx = (c + 0.5) * CELL_SCALE;
       const cellCz = (r + 0.5) * CELL_SCALE;
       for (const [ox, oz] of QUAD_OFFSETS) {
-        dummy.position.set(cellCx + ox * CELL_SCALE, 0.05, cellCz + oz * CELL_SCALE);
+        dummy.position.set(cellCx + ox * CELL_SCALE, 0, cellCz + oz * CELL_SCALE);
         dummy.rotation.set(0, 0, 0);
         dummy.scale.set(1, 1, 1); // 归一化已 bake 到 merged geometry
         dummy.updateMatrix();

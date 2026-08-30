@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { MazeData, PathCell, PathDirection } from '../game/types';
-import { CELL_SCALE } from '../constants/global';
+import { CELL_SCALE, Dierection } from '../constants/global';
+import type { DierectionType } from '../constants/global';
 import { ExitPortal } from './ExitPortal';
 import { GrassCellsRenderer as GrassCells } from './GrassCells';
 import {
@@ -13,9 +14,11 @@ import {
 import { Shopee } from './Shopee';
 import { Kilox } from './Kilox';
 import { Huawei } from './Huawei';
+import { Amiba } from './Amiba';
+import { MilkTea } from '../scenes/MilkTea';
 import { Ocean } from './Ocean';
 import { SceneGround } from './SceneGround';
-import { Amiba } from './Amiba';
+import { LightBeam } from './LightBeam';
 import type { DescriptionId } from '../state/sceneStore';
 
 // ===== 场景放置逻辑 =====
@@ -29,7 +32,7 @@ interface ScenePlacement {
   /** 模型左侧显示的文字标签 */
   label?: string;
   /** 场景描述 id（对应 descriptions.ts 中的 key） */
-  descriptionId: DescriptionId;
+  descriptionId?: DescriptionId;
   /** 生成场景组件 */
   generateContent: (
     position: [number, number, number],
@@ -37,8 +40,21 @@ interface ScenePlacement {
     size: number,
     label: string | undefined,
     pathCells: Array<{ c: number; r: number }>,
-    descriptionId: DescriptionId,
+    descriptionId?: DescriptionId,
   ) => ReactNode;
+}
+
+interface ScenePathCellProps {
+  c: number;
+  r: number;
+  sceneDir?: DierectionType;
+}
+
+const SceneDirectionForPathMap = {
+  0: Dierection.Top,
+  [Math.PI]: Dierection.Bottom,
+  [-Math.PI / 2]: Dierection.Right,
+  [Math.PI / 2]: Dierection.Left
 }
 
 /**
@@ -94,16 +110,16 @@ function getWallSides(dir: PathDirection): Array<{ dc: number; dr: number }> {
 
 /**
  * 在 solutionPath 上查找场景放置位置。
- * 返回 { contentMap, occupiedCells }。
+ * 返回 { contentMap, occupiedCells, scenePathCells }。
  */
 function findScenePlacements(
   maze: MazeData,
   placements: ScenePlacement[],
   maxSearchOffset = 20,
-): { contentMap: Map<string, ReactNode>; occupiedCells: Set<string>; scenePathCells: Array<{ c: number; r: number }> } {
+): { contentMap: Map<string, ReactNode>; occupiedCells: Set<string>; scenePathCells: Array<ScenePathCellProps> } {
   const contentMap = new Map<string, ReactNode>();
   const occupiedCells = new Set<string>();
-  const scenePathCells: Array<{ c: number; r: number }> = [];
+  const scenePathCells: Array<ScenePathCellProps> = [];
   const path = maze.solutionPath;
   if (!path || path.length < 4) return { contentMap, occupiedCells, scenePathCells };
   const w = maze.width;
@@ -124,7 +140,7 @@ function findScenePlacements(
         if (!segment) continue;
 
         // 获取段内路径格
-        const segmentPathCells: Array<{ c: number; r: number }> = [];
+        const segmentPathCells: Array<{ c: number; r: number, rotationY?: number }> = [];
         for (let j = segment.start; j <= segment.end; j++) {
           segmentPathCells.push({ c: path[j].c, r: path[j].r });
         }
@@ -156,11 +172,6 @@ function findScenePlacements(
             occupiedCells.add(`${wc.c}-${wc.r}`);
           }
 
-          // 收集场景对应的道路单元格
-          for (const pc of segmentPathCells) {
-            scenePathCells.push({ c: pc.c, r: pc.r });
-          }
-
           // 所有墙格放组件
           if (wallCells.length > 0) {
             // 组件中心 = 所有墙格的中心
@@ -183,6 +194,7 @@ function findScenePlacements(
             const dc = pathCenterC - centerC;
             const dr = pathCenterR - centerR;
             const rotationY = Math.atan2(dc, dr);
+            segmentPathCells.forEach(path => path.rotationY = rotationY);
 
             // 组件尺寸 = 占用格数 × 单元格尺寸
             const size = wallCells.length * CELL_SCALE;
@@ -191,6 +203,13 @@ function findScenePlacements(
               `${firstCell.c}-${firstCell.r}`,
               placement.generateContent(position, rotationY, size, placement.label, segmentPathCells, placement.descriptionId),
             );
+          }
+
+          // 收集场景对应的道路单元格
+          for (const pc of segmentPathCells) {
+            // 场景位于道路的方位
+            const sceneDir = pc.rotationY ? SceneDirectionForPathMap[pc.rotationY] : Dierection.Top;
+            scenePathCells.push({ c: pc.c, r: pc.r, sceneDir: sceneDir});
           }
 
           placed = true;
@@ -235,19 +254,26 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
   const { width: w, height: h } = maze;
 
   // 用 findScenePlacements 查找场景放置点（先算，后面 grass/树需要用 occupiedCells 过滤）
-  const { contentMap, occupiedCells } = useMemo(() => {
+  const { contentMap, occupiedCells, scenePathCells } = useMemo(() => {
     const pathLen = maze.solutionPath?.length ?? 0;
-    if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>(), scenePathCells: [] as Array<{ c: number; r: number }> };
+    if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>(), scenePathCells: [] as Array<ScenePathCellProps> };
     const step = 5 / pathLen;
     return findScenePlacements(maze, [
       {
         pathFraction: 1 / 4,
         length: 1,
-        descriptionId: 'amiba',
+        descriptionId: 'Amiba',
         generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Amiba position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+          <Amiba position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
+      // {
+      //   pathFraction: 1 / 4 + step,
+      //   length: 1,
+      //   generateContent: (position, rotationY, size) => (
+      //     <MilkTea position={position} size={size * 0.75} rotationY={rotationY} />
+      //   ),
+      // },
       {
         pathFraction: 1 / 4 + step,
         length: 1,
@@ -255,7 +281,6 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
           <Shopee position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
         ),
-        
       },
       {
         pathFraction: 1 / 4 + step * 2,
@@ -324,7 +349,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       </mesh>
 
       {/* 场景占用格：用 box 替代 grass，颜色 #D29E76 */}
-      <SceneGround cells={sceneGroundCells} />
+      {/* <SceneGround cells={sceneGroundCells} /> */}
 
       {/* 所有墙格底部：grass 贴地平铺 */}
       <GrassCells cells={grassCells} />
@@ -336,14 +361,15 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       <ScenePlacements contentMap={contentMap} />
 
       {/* 场景对应道路单元格上的光柱 */}
-      {/* {scenePathCells.map(({ c, r }) => (
+      {scenePathCells.map(({ c, r, sceneDir }) => (
         <LightBeam
           key={`beam-${c}-${r}`}
           position={[(c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE]}
-          radiusTop={CELL_SCALE * 0.2}
-          radiusBottom={CELL_SCALE * 0.2}
+          radius={CELL_SCALE * 0.15}
+          tube={CELL_SCALE * 0.2 * 0.05}
+          sceneDir={sceneDir}
         />
-      ))} */}
+      ))}
 
       {/* 迷宫四边：樱花树贴边围绕（每格 1 棵，最高 1 cell 高度） */}
       <PerimeterSakuraCells cells={perimeterSakuraCells} />

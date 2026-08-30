@@ -12,9 +12,10 @@ import {
 } from '../state/sceneStore';
 
 const base = import.meta.env.BASE_URL;
-const SHOPEE_URL = `${base}/models/shopee.glb`;
-const SHEBI_URL = `${base}/models/shebi.glb`;
-const HEBI_URL = `${base}/models/hebi.glb`;
+// const SHOPEE_URL = `${base}/models/shopee.glb`;
+const SHOPEE_URL = `${base}/models/shopee-scene-95.glb`;
+// const SHEBI_URL = `${base}/models/shebi.glb`;
+// const HEBI_URL = `${base}/models/hebi.glb`;
 
 export interface ShopeeProps {
   position: [number, number, number];
@@ -87,45 +88,45 @@ export function Shopee({
   const shopee = useNormalizedModel(SHOPEE_URL, size, castShadow, receiveShadow);
 
   // shebi / hebi：归一化到 size 的 0.35，底部贴地
-  const shebi = useNormalizedModel(SHEBI_URL, size * 0.35, castShadow, receiveShadow);
-  const hebi = useNormalizedModel(HEBI_URL, size * 0.35, castShadow, receiveShadow);
+  // const shebi = useNormalizedModel(SHEBI_URL, size * 0.35, castShadow, receiveShadow);
+  // const hebi = useNormalizedModel(HEBI_URL, size * 0.35, castShadow, receiveShadow);
 
   // shebi 动画：AnimationMixer 播放 clips
-  const shebiMixerRef = useRef<THREE.AnimationMixer | null>(null);
-  useEffect(() => {
-    if (!shebi.animations || shebi.animations.length === 0) return;
-    const mixer = new THREE.AnimationMixer(shebi.clonedScene);
-    const action = mixer.clipAction(shebi.animations[0]);
-    action.reset().play();
-    action.timeScale = 1;
-    shebiMixerRef.current = mixer;
-    return () => {
-      action.stop();
-      mixer.uncacheAction(shebi.animations[0]);
-      shebiMixerRef.current = null;
-    };
-  }, [shebi.clonedScene, shebi.animations]);
+  // const shebiMixerRef = useRef<THREE.AnimationMixer | null>(null);
+  // useEffect(() => {
+  //   if (!shebi.animations || shebi.animations.length === 0) return;
+  //   const mixer = new THREE.AnimationMixer(shebi.clonedScene);
+  //   const action = mixer.clipAction(shebi.animations[0]);
+  //   action.reset().play();
+  //   action.timeScale = 1;
+  //   shebiMixerRef.current = mixer;
+  //   return () => {
+  //     action.stop();
+  //     mixer.uncacheAction(shebi.animations[0]);
+  //     shebiMixerRef.current = null;
+  //   };
+  // }, [shebi.clonedScene, shebi.animations]);
 
   // hebi 动画：AnimationMixer 播放 clips
-  const hebiMixerRef = useRef<THREE.AnimationMixer | null>(null);
-  useEffect(() => {
-    if (!hebi.animations || hebi.animations.length === 0) return;
-    const mixer = new THREE.AnimationMixer(hebi.clonedScene);
-    const action = mixer.clipAction(hebi.animations[0]);
-    action.reset().play();
-    action.timeScale = 1;
-    hebiMixerRef.current = mixer;
-    return () => {
-      action.stop();
-      mixer.uncacheAction(hebi.animations[0]);
-      hebiMixerRef.current = null;
-    };
-  }, [hebi.clonedScene, hebi.animations]);
+  // const hebiMixerRef = useRef<THREE.AnimationMixer | null>(null);
+  // useEffect(() => {
+  //   if (!hebi.animations || hebi.animations.length === 0) return;
+  //   const mixer = new THREE.AnimationMixer(hebi.clonedScene);
+  //   const action = mixer.clipAction(hebi.animations[0]);
+  //   action.reset().play();
+  //   action.timeScale = 1;
+  //   hebiMixerRef.current = mixer;
+  //   return () => {
+  //     action.stop();
+  //     mixer.uncacheAction(hebi.animations[0]);
+  //     hebiMixerRef.current = null;
+  //   };
+  // }, [hebi.clonedScene, hebi.animations]);
 
-  useFrame((_, delta) => {
-    if (shebiMixerRef.current) shebiMixerRef.current.update(delta);
-    if (hebiMixerRef.current) hebiMixerRef.current.update(delta);
-  });
+  // useFrame((_, delta) => {
+  //   if (shebiMixerRef.current) shebiMixerRef.current.update(delta);
+  //   if (hebiMixerRef.current) hebiMixerRef.current.update(delta);
+  // });
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
@@ -137,20 +138,20 @@ export function Shopee({
       />
 
       {/* shebi：左侧（减小 X 偏移确保在墙格内） */}
-      <primitive
+      {/* <primitive
         object={shebi.clonedScene}
         position={[-size * 0.45, shebi.offsetY + 0.05, 0.15]}
         scale={shebi.normalizeScale * 0.01}
-      />
+      /> */}
 
       {/* hebi：右侧 */}
-      <primitive
+      {/* <primitive
         object={hebi.clonedScene}
         position={[size * 0.4, hebi.offsetY + 0.05, 0.1]}
         scale={hebi.normalizeScale * 0.01}
-      />
+      /> */}
 
-      {label && (
+      {/* {label && (
         <Text
           position={[-size / 2 - CELL_SCALE * 0.1, size * 0.25, 0]}
           fontSize={CELL_SCALE * 0.15}
@@ -162,7 +163,7 @@ export function Shopee({
         >
           {label}
         </Text>
-      )}
+      )} */}
 
       <EnvelopeLine
         position={[-0.02, 0.1, 0.5]}

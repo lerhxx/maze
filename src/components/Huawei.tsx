@@ -9,7 +9,8 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 
-const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
+// const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
+const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei-scene-90.glb`;
 
 export interface HuaweiProps {
   position: [number, number, number];
@@ -72,11 +73,11 @@ export function Huawei({
   }, [gltf.scene, size, castShadow, receiveShadow]);
 
   return (
-    <group position={position} rotation={[0, rotationY, 0]}>
+    <group position={[position[0], position[1] - 0.0, position[2] + 0.0]} rotation={[0, rotationY, 0]}>
       <primitive
         object={clonedScene}
         position={[0, offsetY, 0]}
-        scale={normalizeScale}
+        scale={normalizeScale * 1.3}
       />
       {label && (
         <Text

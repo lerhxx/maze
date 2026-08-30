@@ -1,17 +1,24 @@
 import * as THREE from 'three';
 import { WALL_HEIGHT } from '../constants/wall';
-import { EnvelopeLine } from './EnvelopeLine';
-
+import { EnvelopeLine } from './EnvelopeLine2';
+import { Dierection, CELL_SCALE } from '../constants/global';
+import type { DierectionType } from '../constants/global';
 export interface LightBeamProps {
   position: [number, number, number];
   /** 顶部半径 */
   radiusTop?: number;
   /** 底部半径 */
   radiusBottom?: number;
+  /** 环形半径 */
+  radius?: number;
+  /** 环形厚度 */
+  tube?: number;
   /** 光柱高度，默认为 WALL_HEIGHT */
   height?: number;
   /** 是否在光柱中心显示粉色粒子信封（相机触发汇聚/散开），默认 true */
   envelope?: boolean;
+  /** 场景在道路的位置 */
+  sceneDir?: DierectionType;
 }
 
 /**
@@ -23,14 +30,30 @@ export function LightBeam({
   position,
   radiusTop = 0.3,
   radiusBottom = 0.3,
+  radius = 0.3,
+  tube = 0.1,
   height = WALL_HEIGHT,
   envelope = true,
+  sceneDir = Dierection.Top
 }: LightBeamProps) {
+  const biasPosition = position;
+  // 往场景方向靠
+  const bias = 0.15 * CELL_SCALE;
+  if (sceneDir === Dierection.Top) {
+    biasPosition[2] -= bias
+  } else if (sceneDir === Dierection.Right) {
+    biasPosition[0] += bias
+  } else if (sceneDir === Dierection.Bottom) {
+    biasPosition[2] += bias
+  } else if (sceneDir === Dierection.Left) {
+    biasPosition[0] -= bias
+  }
+  
   return (
-    <group position={position}>
+    <group position={biasPosition}>
       {/* Glowing ring on the floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <torusGeometry args={[radiusBottom, radiusBottom * 0.12, 8, 32]} />
+        <torusGeometry args={[radius, tube, 8, 32]} />
         <meshStandardMaterial
           color="#ffffff"
           emissive="#ffffff"
@@ -40,7 +63,7 @@ export function LightBeam({
       </mesh>
 
       {/* Vertical light beam */}
-      <mesh position={[0, height / 2, 0]}>
+      {/* <mesh position={[0, height / 2, 0]}>
         <cylinderGeometry args={[radiusTop, radiusBottom, height, 16, 1, true]} />
         <meshStandardMaterial
           color="#ffffff"
@@ -50,21 +73,25 @@ export function LightBeam({
           opacity={0.15}
           side={THREE.DoubleSide}
         />
-      </mesh>
+      </mesh> */}
 
       {/* 粒子信封：悬浮在光柱顶部上方（墙顶以上，避免被迷宫墙遮挡），无浮动
           光柱进入相机前方视野 → 汇聚成信封；移出视野 → 散开
           宽度 = 地面发光环直径的一半（radiusBottom），与环呼应 */}
-      {envelope && (
-        // <EnvelopeLine 
-        //   position={[0, height + 0.6, 0]} 
-        //   size={radiusBottom} 
-        //   maxCount={3500} 
-        // />
+      {/* {envelope && (
+        <EnvelopeLine 
+          position={[0, height + 0.6, 0]} 
+          size={radiusBottom} 
+          maxCount={3500} 
+        />
         <EnvelopeLine 
           svgUrl='/envelope.svg'
         />
-      )}
+      )} */}
+      <EnvelopeLine
+        size={0.075}
+        position={[0, 0.25, 0]}
+      />
     </group>
   );
 }

@@ -288,8 +288,10 @@ export function EnvelopeLine({
 
   // 4) 仅更新 uTime
   useFrame((state) => {
+    const time = state.clock.elapsedTime
     const u = materialRef.current?.uniforms;
-    if (u) u.uTime.value = state.clock.elapsedTime;
+    if (u) u.uTime.value = time;
+    if (groupRef.current) groupRef.current.rotation.y = time * 0.5;
   });
 
   return (
