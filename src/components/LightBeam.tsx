@@ -39,7 +39,7 @@ export function LightBeam({
   // 往场景方向靠（局部计算，不改动 props）
   const biasPosition = useMemo<[number, number, number]>(() => {
     const p: [number, number, number] = [position[0], position[1], position[2]];
-    const bias = 0.15 * CELL_SCALE;
+    const bias = 0.2 * CELL_SCALE;
     if (sceneDir === Dierection.Top) {
       p[2] -= bias;
     } else if (sceneDir === Dierection.Right) {
@@ -73,6 +73,17 @@ export function LightBeam({
           emissive="#ffffff"
           emissiveIntensity={1.2}
           roughness={0.3}
+        />
+      </mesh>
+
+      {/* 环中心小实心圆 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.021, 0]}>
+        <circleGeometry args={[radius * 0.6, 24]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={0.9}
+          roughness={0.4}
         />
       </mesh>
 

@@ -365,7 +365,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         <LightBeam
           key={`beam-${c}-${r}`}
           position={[(c + 0.5) * CELL_SCALE, 0, (r + 0.5) * CELL_SCALE]}
-          radius={CELL_SCALE * 0.15}
+          radius={CELL_SCALE * 0.1}
           tube={CELL_SCALE * 0.2 * 0.05}
           sceneDir={sceneDir}
         />
