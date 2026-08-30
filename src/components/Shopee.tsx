@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+// import { useFrame } from '@react-three/fiber';
 import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { CELL_SCALE } from '../constants/global';
-import { EnvelopeLine } from './EnvelopeLine2';
+// import { CELL_SCALE } from '../constants/global';
+// import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
@@ -165,9 +165,9 @@ export function Shopee({
         </Text>
       )} */}
 
-      <EnvelopeLine
+      {/* <EnvelopeLine
         position={[-0.02, 0.1, 0.5]}
-      />
+      /> */}
     </group>
   );
 }

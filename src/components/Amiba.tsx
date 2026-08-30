@@ -116,11 +116,12 @@
 
 // export default Amiba;
 
-import { useMemo, } from 'react';
+import { useEffect, useMemo, } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
+  sceneState,
   type DescriptionId,
 } from '../state/sceneStore';
 
@@ -180,7 +181,18 @@ export function Amiba({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
+  descriptionId = 'Amiba',
+  pathCells,
 }: AmibaProps) {
+
+  // 注册场景事件：pathCells → 描述 id
+  // （LightBeam 的环触发靠 getIdForCell 反查，不注册则走进光柱环不会弹窗）
+  useEffect(() => {
+    if (!pathCells || pathCells.length === 0) return;
+    const keySet = new Set(pathCells.map(({ c, r }) => `${c},${r}`));
+    sceneState.register({ id: descriptionId, pathCellKeys: keySet });
+    return () => sceneState.unregister(descriptionId);
+  }, [descriptionId, pathCells]);
 
   // 主模型 milk-tea：保留原有的 0.3 缩放 + offsetY=0.35
   const amiba = useNormalizedModel(Amiba_URL, size, castShadow, receiveShadow);

@@ -11,6 +11,17 @@ export interface SceneRegistration {
   pathCellKeys: Set<string>;
 }
 
+/** 光柱触发器：LightBeam 注册的地面环（玩家进入环内 → 自动打开描述） */
+export interface BeamTrigger {
+  /** 环心世界坐标 */
+  x: number;
+  z: number;
+  /** 触发半径（环半径 + 余量） */
+  radius: number;
+  /** 环所在道路格 key，用于反查场景 id */
+  cellKey: string;
+}
+
 /** 全局 store：用单例模式模拟，不引入 zustand。 */
 class SceneState {
   /** 当前气泡对应的道路单元格 key（玩家在哪个场景的道路格上） */
@@ -21,6 +32,8 @@ class SceneState {
   private registrations: Map<DescriptionId, SceneRegistration> = new Map();
   /** 道路 key → 场景 id 的反查表 */
   private keyToId: Map<string, DescriptionId> = new Map();
+  /** 已注册的光柱触发器 */
+  private beamTriggers: BeamTrigger[] = [];
 
   /** 订阅者 */
   private subs: Set<() => void> = new Set();
@@ -47,6 +60,25 @@ class SceneState {
       reg.pathCellKeys.forEach((k) => this.keyToId.delete(k));
     }
     this.registrations.delete(id);
+  }
+
+  /** 注册光柱触发器（LightBeam 挂载时调用，返回注销函数） */
+  registerBeam(trigger: BeamTrigger): () => void {
+    this.beamTriggers.push(trigger);
+    return () => {
+      const i = this.beamTriggers.indexOf(trigger);
+      if (i >= 0) this.beamTriggers.splice(i, 1);
+    };
+  }
+
+  /** 获取当前所有光柱触发器（Player 每帧检测用） */
+  getBeams(): readonly BeamTrigger[] {
+    return this.beamTriggers;
+  }
+
+  /** 道路格 key → 场景 id 反查 */
+  getIdForCell(cellKey: string): DescriptionId | null {
+    return this.keyToId.get(cellKey) ?? null;
   }
 
   /** 玩家进入道路格：更新 activeSceneId */

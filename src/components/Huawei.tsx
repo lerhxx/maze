@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
-import { EnvelopeLine } from './EnvelopeLine2';
+// import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
@@ -93,9 +93,9 @@ export function Huawei({
         </Text>
       )}
 
-      <EnvelopeLine
+      {/* <EnvelopeLine
         position={[0, 0.1, 0.5]}
-      />
+      /> */}
 
     </group>
   );

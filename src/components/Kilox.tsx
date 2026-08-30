@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE } from '../constants/global';
-import { EnvelopeLine } from './EnvelopeLine2';
+// import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
@@ -138,9 +138,9 @@ export function Kilox({
       )}
 
       {/* EnvelopeLine 粒子信封 */}
-      <EnvelopeLine
+      {/* <EnvelopeLine
         position={[-0.02, 0.1, 0.4]}
-      />
+      /> */}
     </group>
   );
 }

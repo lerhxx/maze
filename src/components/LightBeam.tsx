@@ -1,8 +1,9 @@
-import * as THREE from 'three';
-import { WALL_HEIGHT } from '../constants/wall';
-import { EnvelopeLine } from './EnvelopeLine2';
+import { useEffect, useMemo } from 'react';
+// import { EnvelopeLine } from './EnvelopeLine2';
 import { Dierection, CELL_SCALE } from '../constants/global';
 import type { DierectionType } from '../constants/global';
+import { sceneState } from '../state/sceneStore';
+
 export interface LightBeamProps {
   position: [number, number, number];
   /** 顶部半径 */
@@ -25,30 +26,43 @@ export interface LightBeamProps {
  * 垂直光柱 + 地面发光圆环：白色
  * 可选：光柱中心悬浮粉色粒子信封（EnvelopeLine），
  * 相机进入视野时汇聚、经过时散开、离开后重聚。
+ *
+ * 玩家进入地面环内 → 通过 sceneState 注册的触发器自动打开对应描述弹窗
+ * （等效按 E 键；离开再进入才会再次触发）。
  */
 export function LightBeam({
   position,
-  radiusTop = 0.3,
-  radiusBottom = 0.3,
   radius = 0.3,
   tube = 0.1,
-  height = WALL_HEIGHT,
-  envelope = true,
   sceneDir = Dierection.Top
 }: LightBeamProps) {
-  const biasPosition = position;
-  // 往场景方向靠
-  const bias = 0.15 * CELL_SCALE;
-  if (sceneDir === Dierection.Top) {
-    biasPosition[2] -= bias
-  } else if (sceneDir === Dierection.Right) {
-    biasPosition[0] += bias
-  } else if (sceneDir === Dierection.Bottom) {
-    biasPosition[2] += bias
-  } else if (sceneDir === Dierection.Left) {
-    biasPosition[0] -= bias
-  }
-  
+  // 往场景方向靠（局部计算，不改动 props）
+  const biasPosition = useMemo<[number, number, number]>(() => {
+    const p: [number, number, number] = [position[0], position[1], position[2]];
+    const bias = 0.15 * CELL_SCALE;
+    if (sceneDir === Dierection.Top) {
+      p[2] -= bias;
+    } else if (sceneDir === Dierection.Right) {
+      p[0] += bias;
+    } else if (sceneDir === Dierection.Bottom) {
+      p[2] += bias;
+    } else if (sceneDir === Dierection.Left) {
+      p[0] -= bias;
+    }
+    return p;
+  }, [position, sceneDir]);
+
+  // 注册光柱触发器：环心 + 触发半径（环半径 + 厚度 + 一点余量）
+  useEffect(() => {
+    const cellKey = `${Math.floor(biasPosition[0] / CELL_SCALE)},${Math.floor(biasPosition[2] / CELL_SCALE)}`;
+    return sceneState.registerBeam({
+      x: biasPosition[0],
+      z: biasPosition[2],
+      radius: radius + tube + 0.05,
+      cellKey,
+    });
+  }, [biasPosition, radius, tube]);
+
   return (
     <group position={biasPosition}>
       {/* Glowing ring on the floor */}
@@ -79,19 +93,19 @@ export function LightBeam({
           光柱进入相机前方视野 → 汇聚成信封；移出视野 → 散开
           宽度 = 地面发光环直径的一半（radiusBottom），与环呼应 */}
       {/* {envelope && (
-        <EnvelopeLine 
-          position={[0, height + 0.6, 0]} 
-          size={radiusBottom} 
-          maxCount={3500} 
+        <EnvelopeLine
+          position={[0, height + 0.6, 0]}
+          size={radiusBottom}
+          maxCount={3500}
         />
-        <EnvelopeLine 
+        <EnvelopeLine
           svgUrl='/envelope.svg'
         />
       )} */}
-      <EnvelopeLine
+      {/* <EnvelopeLine
         size={0.075}
         position={[0, 0.25, 0]}
-      />
+      /> */}
     </group>
   );
 }

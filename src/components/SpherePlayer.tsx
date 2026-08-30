@@ -15,7 +15,7 @@ import {
   ANIM_BLEND_RATE,
 } from '../constants/player';
 import { CELL_SCALE, USE_MOUSE } from '../constants/global';
-import { updatePlayerPathCell } from '../state/sceneStore';
+import { updatePlayerPathCell, sceneState } from '../state/sceneStore';
 
 // 防穿墙：每步最大位移 = 0.2 个单元格（世界单位）
 const MAX_STEP = 0.2 * CELL_SCALE;
@@ -67,6 +67,8 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   const wonRef = useRef(false);
   // 动画当前 timeScale（平滑过渡用）
   const animSpeedRef = useRef(0);
+  // 当前所处的光柱环 cellKey（边沿触发：只在"进入"瞬间打开弹窗）
+  const inBeamRef = useRef<string | null>(null);
 
   const { scene: playerModel, animations } = useGLTF(PLAYER_URL);
   const { actions, mixer } = useAnimations(animations, groupRef);
@@ -283,6 +285,33 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
     if (cellCol === maze.exitCol && cellRow === maze.exitRow) {
       wonRef.current = true;
       onWin();
+    }
+
+    // --- 光柱环触发：进入环内自动打开描述（等效按 E 键），走出环自动关闭 ---
+    {
+      let insideBeamKey: string | null = null;
+      for (const beam of sceneState.getBeams()) {
+        const bx = posRef.current.x - beam.x;
+        const bz = posRef.current.z - beam.z;
+        if (bx * bx + bz * bz <= beam.radius * beam.radius) {
+          insideBeamKey = beam.cellKey;
+          break;
+        }
+      }
+      const prevBeamKey = inBeamRef.current;
+      if (prevBeamKey !== null && prevBeamKey !== insideBeamKey) {
+        // 离开边沿：走出（或跨入相邻）环 → 若打开的正是该场景的弹窗则关闭
+        const id = sceneState.getIdForCell(prevBeamKey);
+        if (id && sceneState.openId === id) {
+          sceneState.closeDescription();
+        }
+      }
+      if (insideBeamKey !== null && prevBeamKey !== insideBeamKey && sceneState.openId === null) {
+        // 进入边沿：刚进入这个环 且 弹窗未打开 → 自动打开
+        const id = sceneState.getIdForCell(insideBeamKey);
+        if (id) sceneState.openDescription(id);
+      }
+      inBeamRef.current = insideBeamKey;
     }
 
     // --- 更新场景道路格（用于气泡触发） ---

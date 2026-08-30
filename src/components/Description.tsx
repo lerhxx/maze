@@ -145,8 +145,7 @@ export function Description({ id, onClose }: DescriptionProps) {
             />
           </div>
           <div className="lpd-body">
-            <div className="lpd-title">{data.title}</div>
-            <div className="lpd-sub">{data.subTitle}</div>
+            <div className="lpd-title">{data.title} · <span className="lpd-sub">{data.subTitle}</span></div>
             <div className="lpd-thinks">
               {data.thinks?.map((item, i) => (
                 <p key={i}>{item}</p>
