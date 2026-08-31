@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameRef } from '../game/types';
 import { Minimap } from './Minimap';
 import { captureAndDownload } from '../utils/offscreenRender';
+import { USE_MOUSE } from '../constants/global';
 
 interface HUDProps {
   gameRef: React.MutableRefObject<GameRef>;
@@ -87,7 +88,7 @@ export function HUD({ gameRef, isPlaying, startTime }: HUDProps) {
   return (
     <div className="hud">
       {/* 绘制（离屏渲染导出图片） */}
-      <div className="hud-capture">
+      { !USE_MOUSE && <div className="hud-capture">
         <button
           className="capture-btn"
           onClick={handleCapture}
@@ -109,7 +110,7 @@ export function HUD({ gameRef, isPlaying, startTime }: HUDProps) {
         {capture.preview && (
           <img className="capture-preview" src={capture.preview} alt="离屏渲染预览" />
         )}
-      </div>
+      </div> }
 
       {/* Timer */}
       <div className="hud-timer">

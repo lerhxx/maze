@@ -7,11 +7,12 @@ import { Player } from './SpherePlayer';
 import { HUD } from './HUD';
 import { Description } from './Description';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
-import { CELL_SCALE } from '../constants/global';
+import { CELL_SCALE, WARM_LIGHT_BG } from '../constants/global';
 import { OrbitControls } from '@react-three/drei';
 import { Perf } from 'r3f-perf';
 import { sceneState, useSceneState, type DescriptionId } from '../state/sceneStore';
 import { setRendererContext } from '../utils/offscreenRender';
+import { USE_MOUSE } from '../constants/global';
 
 interface MazeGameProps {
   maze: MazeData;
@@ -91,7 +92,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
         className="game-canvas"
       >
         <Perf position="top-left" />
-        <OrbitControls />
+        { !USE_MOUSE && <OrbitControls />}
         <SceneContent maze={maze} gameRef={gameRef} onWin={handleWin} />
       </Canvas>
 
@@ -128,8 +129,10 @@ function SceneContent({
   // }, [gl, scene]);
 
   useEffect(() => {
-    scene.background = new THREE.Color('#ffffff');
-  }, [scene])
+    scene.background = new THREE.Color(WARM_LIGHT_BG);
+    // 清屏色也设成暖光色：Canvas 首帧 / 场景挂载完成前不会先闪一下黑屏
+    gl.setClearColor(WARM_LIGHT_BG);
+  }, [scene, gl])
 
   // 把渲染上下文暴露给 HUD 的「绘制」按钮，用于离屏渲染导出图片
   useEffect(() => {

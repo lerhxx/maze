@@ -24,7 +24,18 @@ export const Dierection = {
 }
 export type DierectionType = typeof Dierection[keyof typeof Dierection];
 
-export const USE_MOUSE = false;
+export const USE_MOUSE = true;
+
+/**
+ * 场景（canvas）的暖光底色。
+ *
+ * 同时用在三处，必须保持一致：
+ *  1. App.css 的 `--warm-light`：Canvas 还没画出内容时（首帧、模型懒加载中）
+ *     先露出这个颜色，不会闪黑屏；菜单淡出的那 430ms 里也是它。
+ *  2. Game.tsx 的 `gl.setClearColor(...)`：WebGL 清屏色。
+ *  3. Game.tsx 的 `scene.background`：场景远景/天空色。
+ */
+export const WARM_LIGHT_BG = '#f6e6d6';
 
 /** true: 用 Three.js 程序化草地（GrassCellsProcedural）；false: 用 grass.glb 模型 */
 export const IS_PURE_GRASS = false;
