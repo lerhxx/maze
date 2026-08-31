@@ -42,7 +42,12 @@ function buildPathCells(rawPath: Array<[number, number]>): PathCell[] {
  *
  * 最终迷宫四周一圈永远是墙，起点 (1,1)，终点 (width-2, height-2)。
  */
-export function generateMaze(width: number, height: number): MazeData {
+/** 期望的解路径长度区间（含端点） */
+const SOLUTION_PATH_MIN = 25;
+const SOLUTION_PATH_MAX = 35;
+const MAX_GENERATE_ATTEMPTS = 500;
+
+function buildMaze(width: number, height: number, acceptAny = false): MazeData | null {
   // 强制奇数（外圈一圈墙 + 内部奇数坐标做路径）
   const w = width % 2 === 0 ? width + 1 : width;
   const h = height % 2 === 0 ? height + 1 : height;
@@ -116,6 +121,10 @@ export function generateMaze(width: number, height: number): MazeData {
       }
       // 转换为带方向信息的 PathCell[]
       solutionPath = buildPathCells(rawPath);
+      // 提前判断：首次到达终点时解路径长度就已确定，不在 [25,35] 内直接放弃本次生成
+      if (!acceptAny && (solutionPath.length < SOLUTION_PATH_MIN || solutionPath.length > SOLUTION_PATH_MAX)) {
+        return null;
+      }
     }
   }
 
@@ -132,6 +141,20 @@ export function generateMaze(width: number, height: number): MazeData {
 }
 
 // ===== Collision Detection =====
+
+/**
+ * 生成迷宫，并在解路径长度不在 [25, 35] 区间内时重新生成。
+ * 首次到达终点、记录 solutionPath 时即判断长度，不合格立即放弃本次生成并重试；
+ * 最多尝试 MAX_GENERATE_ATTEMPTS 次，兜底强制接受一次（放弃长度约束），避免死循环。
+ */
+export function generateMaze(width: number, height: number): MazeData {
+  for (let attempt = 0; attempt < MAX_GENERATE_ATTEMPTS; attempt++) {
+    const maze = buildMaze(width, height);
+    if (maze) return maze; // buildMaze 在解路径长度不合格时返回 null
+  }
+  // 兜底：放弃长度约束，强制接受一次生成的迷宫，避免死循环
+  return buildMaze(width, height, true) as MazeData;
+}
 
 /**
  * 检查位置 (px, pz)（世界单位）是否合法（未与任何墙壁单元格碰撞）。

@@ -148,8 +148,8 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
     const dt = Math.min(delta, 0.05);
 
     // --- Arrow key turning ---
-    if (keysRef.current.has('ArrowLeft')) yawRef.current -= TURN_SPEED * dt;
-    if (keysRef.current.has('ArrowRight')) yawRef.current += TURN_SPEED * dt;
+    if (keysRef.current.has('ArrowLeft')) yawRef.current += TURN_SPEED * dt;
+    if (keysRef.current.has('ArrowRight')) yawRef.current -= TURN_SPEED * dt;
     if (keysRef.current.has('ArrowUp')) pitchRef.current += TURN_SPEED * dt;
     if (keysRef.current.has('ArrowDown')) pitchRef.current -= TURN_SPEED * dt;
     const maxPitch = Math.PI / 2 - 0.05;
