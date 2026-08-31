@@ -13,7 +13,7 @@ import {
 
 const base = import.meta.env.BASE_URL;
 // const SHOPEE_URL = `${base}/models/shopee.glb`;
-const SHOPEE_URL = `${base}/models/shopee-scene-95.glb`;
+const SHOPEE_URL = `${base}/models/shopee-scene-90.glb`;
 // const SHEBI_URL = `${base}/models/shebi.glb`;
 // const HEBI_URL = `${base}/models/hebi.glb`;
 
@@ -133,8 +133,8 @@ export function Shopee({
       {/* 主 shopee-logo */}
       <primitive
         object={shopee.clonedScene}
-        position={[0, 0.3, 0]}
-        scale={shopee.normalizeScale * 0.8}
+        position={[0.0, 0.32, 0.01]}
+        scale={shopee.normalizeScale * 1.38}
       />
 
       {/* shebi：左侧（减小 X 偏移确保在墙格内） */}

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { useGLTF, Text } from '@react-three/drei';
+import { useEffect, useMemo } from 'react';
+// import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { CELL_SCALE } from '../constants/global';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+// import { CELL_SCALE } from '../constants/global';
 // import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
@@ -11,27 +12,7 @@ import {
 } from '../state/sceneStore';
 
 const base = import.meta.env.BASE_URL;
-const ROBOT_URLS = [
-  // `${base}/models/robot-blue.glb`,
-  // `${base}/models/robot-green.glb`,
-  // `${base}/models/robot-pink.glb`,
-  `${base}/models/kilox-95.glb`,
-];
-
-/** 单个 robot 配置：位置偏移 + 浮动相位 */
-interface RobotConfig {
-  url: string;
-  offsetX: number;
-  offsetZ: number;
-  phase: number;
-}
-
-const ROBOT_CONFIGS: RobotConfig[] = [
-  // { url: ROBOT_URLS[0], offsetX: -0.35, offsetZ: 0, phase: 0 },
-  // { url: ROBOT_URLS[1], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
-  // { url: ROBOT_URLS[2], offsetX: 0.35, offsetZ: 0, phase: Math.PI },
-  { url: ROBOT_URLS[0], offsetX: 0, offsetZ: 0, phase: Math.PI / 2 },
-];
+const KILOX_URL = `${base}/models/kilox-90.glb`;
 
 export interface KiloxProps {
   position: [number, number, number];
@@ -39,8 +20,6 @@ export interface KiloxProps {
   rotationY?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
-  bobAmplitude?: number;
-  bobSpeed?: number;
   label?: string;
   /** 场景对应的描述 id */
   descriptionId?: DescriptionId;
@@ -48,16 +27,20 @@ export interface KiloxProps {
   pathCells?: Array<{ c: number; r: number }>;
 }
 
-/** 加载 glb 并归一化克隆场景 */
-function useNormalizedScene(
+/** 加载 glb 并归一化：最大边长 -> targetSize，底部对齐 y=0
+ *  有动画时用 SkeletonUtils.clone 正确克隆骨架 */
+function useNormalizedModel(
   url: string,
-  size: number,
+  targetSize: number,
   castShadow: boolean,
   receiveShadow: boolean,
-): { clonedScene: THREE.Object3D; normalizeScale: number; offsetY: number } {
+): { clonedScene: THREE.Object3D; normalizeScale: number; offsetY: number; animations: THREE.AnimationClip[] } {
   const gltf = useGLTF(url);
   return useMemo(() => {
-    const cloned = (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
+    // 有动画 → SkeletonUtils.clone 保留骨架绑定
+    const cloned = gltf.animations && gltf.animations.length > 0
+      ? SkeletonUtils.clone(gltf.scene) as THREE.Object3D
+      : (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
     cloned.updateWorldMatrix(true, false);
     const box = new THREE.Box3().setFromObject(cloned);
     let scale = 1;
@@ -66,7 +49,7 @@ function useNormalizedScene(
       const s = new THREE.Vector3();
       box.getSize(s);
       const maxDim = Math.max(s.x, Math.max(s.y, s.z));
-      if (maxDim > 0) scale = size / maxDim;
+      if (maxDim > 0) scale = targetSize / maxDim;
       yOff = -box.min.y * scale;
     }
     cloned.traverse((obj) => {
@@ -77,8 +60,8 @@ function useNormalizedScene(
         m.receiveShadow = receiveShadow;
       }
     });
-    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff };
-  }, [gltf.scene, size, castShadow, receiveShadow]);
+    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff, animations: gltf.animations ?? [] };
+  }, [gltf.scene, gltf.animations, targetSize, castShadow, receiveShadow]);
 }
 
 export function Kilox({
@@ -87,8 +70,6 @@ export function Kilox({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
-  bobAmplitude,
-  bobSpeed = 2,
   label,
   descriptionId = 'Kilox',
   pathCells,
@@ -103,27 +84,39 @@ export function Kilox({
 
   useSceneBubble(descriptionId);
 
-  const robotSize = size * 0.2;
-  const rBob = bobAmplitude ?? size * 0.02;
+  // 主模型 kilox：与 Shopee 一致，归一化到 size 并放大悬浮展示
+  const kilox = useNormalizedModel(KILOX_URL, size, castShadow, receiveShadow);
+
+  // kilox 动画：AnimationMixer 播放 clips（当前模型无动画，留作后续换模型用）
+  // const kiloxMixerRef = useRef<THREE.AnimationMixer | null>(null);
+  // useEffect(() => {
+  //   if (!kilox.animations || kilox.animations.length === 0) return;
+  //   const mixer = new THREE.AnimationMixer(kilox.clonedScene);
+  //   const action = mixer.clipAction(kilox.animations[0]);
+  //   action.reset().play();
+  //   action.timeScale = 1;
+  //   kiloxMixerRef.current = mixer;
+  //   return () => {
+  //     action.stop();
+  //     mixer.uncacheAction(kilox.animations[0]);
+  //     kiloxMixerRef.current = null;
+  //   };
+  // }, [kilox.clonedScene, kilox.animations]);
+
+  // useFrame((_, delta) => {
+  //   if (kiloxMixerRef.current) kiloxMixerRef.current.update(delta);
+  // });
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {ROBOT_CONFIGS.map((cfg) => (
-        <Robot3D
-          key={cfg.url}
-          url={cfg.url}
-          offsetX={cfg.offsetX}
-          offsetZ={cfg.offsetZ}
-          phase={cfg.phase}
-          size={robotSize}
-          bobSpeed={bobSpeed}
-          bobAmp={rBob}
-          castShadow={castShadow}
-          receiveShadow={receiveShadow}
-        />
-      ))}
+      {/* 主模型 kilox */}
+      <primitive
+        object={kilox.clonedScene}
+        position={[0.0, 0.36, 0]}
+        scale={kilox.normalizeScale * 1.35}
+      />
 
-      {label && (
+      {/* {label && (
         <Text
           position={[-size / 2 - CELL_SCALE * 0.1, size * 0.25, 0]}
           fontSize={CELL_SCALE * 0.15}
@@ -135,61 +128,13 @@ export function Kilox({
         >
           {label}
         </Text>
-      )}
+      )} */}
 
       {/* EnvelopeLine 粒子信封 */}
       {/* <EnvelopeLine
         position={[-0.02, 0.1, 0.4]}
       /> */}
     </group>
-  );
-}
-
-/** 单个 robot：加载模型 + 上下浮动动画（按 phase 错开） */
-function Robot3D({
-  url,
-  offsetX,
-  offsetZ,
-  phase,
-  size,
-  bobSpeed,
-  bobAmp,
-  castShadow,
-  receiveShadow,
-}: {
-  url: string;
-  offsetX: number;
-  offsetZ: number;
-  phase: number;
-  size: number;
-  bobSpeed: number;
-  bobAmp: number;
-  castShadow: boolean;
-  receiveShadow: boolean;
-}) {
-  const { clonedScene, normalizeScale, offsetY } = useNormalizedScene(
-    url,
-    size,
-    castShadow,
-    receiveShadow,
-  );
-  const ref = useRef<THREE.Object3D>(null);
-  const baseY = offsetY + 0.1;
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    if (ref.current) {
-      ref.current.position.y = baseY + Math.sin(t * bobSpeed + phase) * bobAmp;
-    }
-  });
-
-  return (
-    <primitive
-      ref={ref as unknown as React.Ref<THREE.Object3D>}
-      object={clonedScene}
-      scale={normalizeScale}
-      position={[offsetX, baseY, offsetZ]}
-    />
   );
 }
 

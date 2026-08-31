@@ -24,7 +24,7 @@ export const Dierection = {
 }
 export type DierectionType = typeof Dierection[keyof typeof Dierection];
 
-export const USE_MOUSE = true;
+export const USE_MOUSE = false;
 
 /** true: 用 Three.js 程序化草地（GrassCellsProcedural）；false: 用 grass.glb 模型 */
 export const IS_PURE_GRASS = false;

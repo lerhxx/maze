@@ -8,6 +8,7 @@ import { HUD } from './HUD';
 import { Description } from './Description';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
 import { CELL_SCALE } from '../constants/global';
+import { OrbitControls } from '@react-three/drei';
 import { Perf } from 'r3f-perf';
 import { sceneState, useSceneState, type DescriptionId } from '../state/sceneStore';
 
@@ -89,6 +90,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
         className="game-canvas"
       >
         <Perf position="top-left" />
+        <OrbitControls />
         <SceneContent maze={maze} gameRef={gameRef} onWin={handleWin} />
       </Canvas>
 

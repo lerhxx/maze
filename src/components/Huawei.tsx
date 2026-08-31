@@ -59,7 +59,7 @@ export function Huawei({
       box.getSize(s);
       const maxDim = Math.max(s.x, Math.max(s.y, s.z));
       if (maxDim > 0) scale = size / maxDim;
-      yOff = -box.min.y * scale + 0.1;
+      yOff = -box.min.y * scale + 0.065;
     }
     cloned.traverse((obj) => {
       const maybeMesh = obj as unknown as { isMesh?: boolean };
@@ -76,8 +76,8 @@ export function Huawei({
     <group position={[position[0], position[1] - 0.0, position[2] + 0.0]} rotation={[0, rotationY, 0]}>
       <primitive
         object={clonedScene}
-        position={[0, offsetY, 0]}
-        scale={normalizeScale * 1.3}
+        position={[-0.005, offsetY, 0]}
+        scale={normalizeScale * 1.41}
       />
       {label && (
         <Text

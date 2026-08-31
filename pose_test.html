@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Pose Test</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #333; }
+  #info { position: fixed; top: 0; left: 0; color: #fff; font: 13px/1.5 monospace; padding: 6px 10px; background: rgba(0,0,0,.7); z-index: 10; white-space: pre; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c" width="1800" height="600"></canvas>
+<div id="info">loading...</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(1800, 600);
+renderer.setClearColor(0x2b2b2b);
+
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://unpkg.com/three@0.185.1/examples/jsm/libs/draco/gltf/');
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
+
+const info = document.getElementById('info');
+const VW = 600, VH = 600;
+
+function makeView(name) {
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+  scene.add(new THREE.DirectionalLight(0xffffff, 1.5));
+  const camera = new THREE.PerspectiveCamera(45, VW / VH, 0.1, 100);
+  camera.position.set(1.5, 1.0, 2.0);
+  camera.lookAt(0, 0.6, 0);
+  const grid = new THREE.GridHelper(4, 20, 0x777777, 0x4a4a4a);
+  grid.position.y = -0.001;
+  scene.add(grid);
+  return { name, scene, camera };
+}
+
+function normalize(obj) {
+  obj.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const s = 1.0 / maxDim;
+  obj.scale.multiplyScalar(s);
+  obj.position.sub(center.multiplyScalar(s));
+  obj.position.y += (box.max.y - center.y) * s;
+  return obj;
+}
+
+function sampleFeet(mixer, scene3, times) {
+  const lf = scene3.getObjectByName('LeftFoot');
+  const rf = scene3.getObjectByName('RightFoot');
+  let best = { d: 1e9, t: 0 };
+  const pL = new THREE.Vector3(), pR = new THREE.Vector3();
+  for (const t of times) {
+    mixer.setTime(t);
+    lf.getWorldPosition(pL);
+    rf.getWorldPosition(pR);
+    const d = pL.distanceTo(pR);
+    if (d < best.d) best = { d, t };
+  }
+  return best;
+}
+
+function quatAvgClip(walkClip, scene3, mixer, times) {
+  const acc = new Map();
+  const n = new Map();
+  const q = new THREE.Quaternion();
+  for (const t of times) {
+    mixer.setTime(t);
+    for (const tr of walkClip.tracks) {
+      const node = scene3.getObjectByName(tr.nodeName);
+      if (!node) continue;
+      node.getWorldQuaternion(q);
+      const a = acc.get(tr.nodeName);
+      if (!a) { acc.set(tr.nodeName, { x: q.x, y: q.y, z: q.z, w: q.w }); n.set(tr.nodeName, 1); continue; }
+      if (a.x*q.x + a.y*q.y + a.z*q.z + a.w*q.w < 0) q.negate();
+      a.x += q.x; a.y += q.y; a.z += q.z; a.w += q.w;
+      n.set(tr.nodeName, (n.get(tr.nodeName) || 0) + 1);
+    }
+  }
+  const tracks = [];
+  for (const [name, a] of acc) {
+    const c = n.get(name) || 1;
+    const inv = 1 / c;
+    let qx = a.x*inv, qy = a.y*inv, qz = a.z*inv, qw = a.w*inv;
+    const len = Math.hypot(qx, qy, qz, qw) || 1;
+    qx/=len; qy/=len; qz/=len; qw/=len;
+    tracks.push(new THREE.QuaternionKeyframeTrack(name + '.quaternion', [0, 1], [qx,qy,qz,qw, qx,qy,qz,qw]));
+  }
+  return new THREE.AnimationClip('idle_avg', 1, tracks);
+}
+
+loader.load('/public/models/player.glb', (gltf) => {
+  const walkClip = gltf.animations[0];
+
+  // ---- 采样走动画 ----
+  const tmp = gltf.scene.clone(true);
+  const tmpMixer = new THREE.AnimationMixer(tmp);
+  const tmpAction = tmpMixer.clipAction(walkClip);
+  tmpAction.play();
+  const N = 200;
+  const times = [];
+  for (let i = 0; i <= N; i++) times.push(i * walkClip.duration / N);
+  const passing = sampleFeet(tmpMixer, tmp, times);
+  const idleClipAvg = quatAvgClip(walkClip, tmp, tmpMixer, times);
+
+  // ---- 三个视图 ----
+  const vBind = makeView('bind');
+  const vAvg = makeView('avg');
+  const vPass = makeView('pass');
+
+  vBind.scene.add(normalize(gltf.scene.clone(true)));
+
+  const avgModel = normalize(gltf.scene.clone(true));
+  vAvg.scene.add(avgModel);
+  const mixAvg = new THREE.AnimationMixer(avgModel);
+  mixAvg.clipAction(idleClipAvg).play();
+
+  const passModel = normalize(gltf.scene.clone(true));
+  vPass.scene.add(passModel);
+  const mixPass = new THREE.AnimationMixer(passModel);
+  const actPass = mixPass.clipAction(walkClip);
+  actPass.play();
+  mixPass.setTime(passing.t);
+
+  info.textContent = `duration=${walkClip.duration.toFixed(3)}  passing_t=${passing.t.toFixed(3)}  footDist=${passing.d.toFixed(4)}\n左: 绑定姿势  中: 球面平均站立  右: 走动画立定帧`;
+
+  let t0 = performance.now();
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = (performance.now() - t0) / 1000;
+    mixAvg.update(0);
+    const views = [vBind, vAvg, vPass];
+    for (let i = 0; i < views.length; i++) {
+      const v = views[i];
+      v.camera.position.set(1.5 + Math.sin(t*0.4+i)*0.25, 1.0, 2.0);
+      v.camera.lookAt(0, 0.6, 0);
+      renderer.setViewport(i*VW, 0, VW, VH);
+      renderer.setScissor(i*VW, 0, VW, VH); renderer.setScissorTest(true);
+      renderer.render(v.scene, v.camera);
+    }
+    renderer.setScissorTest(false);
+  }
+  animate();
+}, (x) => { info.textContent = 'load progress ' + (x.loaded/x.total*100).toFixed(0) + '%'; }, (e) => { info.textContent = 'ERROR ' + e.message; });
+</script>
+</body>
+</html>
