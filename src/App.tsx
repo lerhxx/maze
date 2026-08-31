@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Difficulty, MazeData } from './game/types';
 import { generateMaze } from './game/mazeGenerator';
-import { DIFFICULTY_SIZES, DIFFICULTY_LABELS } from './constants/global';
+import { DIFFICULTY_SIZES } from './constants/global';
 import { MazeGame } from './components/Game';
 // import { MazeGame } from './components/old/MazeGame';
 import './App.css';
-
-interface BestRecord {
-  seconds: number;
-  date: string;
-}
 
 /** 进入场景时 loading 最短展示时长（ms），避免 spinner 一闪而过 */
 const MIN_LOADING_MS = 700;
@@ -22,11 +17,6 @@ function App() {
   const [result, setResult] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const loadingStartRef = useRef(0);
-  const [bestRecords, setBestRecords] = useState<Record<Difficulty, BestRecord | null>>({
-    easy: null,
-    medium: null,
-    hard: null,
-  });
 
   // 场景就绪后收起 loading；保证至少显示 MIN_LOADING_MS，让 spinner 可见
   const handleSceneReady = useCallback(() => {
@@ -80,7 +70,6 @@ function App() {
       {status === 'menu' && (
         <MenuScreen
           onStart={startGame}
-          bestRecords={bestRecords}
         />
       )}
 
@@ -97,8 +86,6 @@ function App() {
       {status === 'won' && result !== null && (
         <WinScreen
           elapsed={result}
-          difficulty={difficulty}
-          bestRecord={bestRecords[difficulty]}
           onPlayAgain={() => startGame(difficulty)}
           onMenu={backToMenu}
         />
@@ -109,7 +96,7 @@ function App() {
 
 // ===== Menu Screen（欢迎页）=====
 
-const WELCOME_URL = `${import.meta.env.BASE_URL}/welcome.png`;
+const WELCOME_URL = `${import.meta.env.BASE_URL}/welcome.webp`;
 
 const MENU_KEY_LABELS: Record<string, string> = {
   KeyW: 'W',
@@ -125,24 +112,16 @@ const MENU_KEY_LABELS: Record<string, string> = {
 
 function MenuScreen({
   onStart,
-  bestRecords,
 }: {
   onStart: (diff: Difficulty) => void;
-  bestRecords: Record<Difficulty, BestRecord | null>;
 }) {
   const sceneRef = useRef<HTMLDivElement>(null);
   const particlesRef = useRef<HTMLDivElement>(null);
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [difficulty] = useState<Difficulty>('easy');
   const [leaving, setLeaving] = useState(false);
 
   const stateRef = useRef({ difficulty, leaving });
   stateRef.current = { difficulty, leaving };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
 
   // 金色漂浮粒子
   useEffect(() => {
@@ -205,8 +184,6 @@ function MenuScreen({
     };
   }, [launch]);
 
-  const record = bestRecords[difficulty];
-
   return (
     <div
       ref={sceneRef}
@@ -214,7 +191,7 @@ function MenuScreen({
       role="main"
       aria-label="迷宫探险启动界面"
     >
-      {/* 背景：多巴胺渐变 + 彩色光斑 + welcome.png 的模糊副本 */}
+      {/* 背景：多巴胺渐变 + 彩色光斑 + welcome.webp 的模糊副本 */}
       <div className="menu-bg-gradient" aria-hidden="true" />
       {/* <div
         className="menu-bg-blur"
@@ -358,14 +335,10 @@ function LoadingScreen() {
 
 function WinScreen({
   elapsed,
-  difficulty,
-  bestRecord,
   onPlayAgain,
   onMenu,
 }: {
   elapsed: number;
-  difficulty: Difficulty;
-  bestRecord: BestRecord | null;
   onPlayAgain: () => void;
   onMenu: () => void;
 }) {

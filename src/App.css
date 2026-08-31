@@ -76,7 +76,7 @@ body,
   pointer-events: none;
 }
 
-/* 背景：welcome.png 的模糊副本，低透明度只做质感底纹 */
+/* 背景：welcome.webp 的模糊副本，低透明度只做质感底纹 */
 .menu-bg-blur {
   position: absolute;
   inset: -12vh -12vw;

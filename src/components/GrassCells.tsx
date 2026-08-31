@@ -3,9 +3,9 @@ import { useGraph } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { CELL_SCALE, IS_PURE_GRASS } from '../constants/global';
+import { CELL_SCALE, IS_PURE_GRASS, modelUrl } from '../constants/global';
 
-const GRASS_URL = `${import.meta.env.BASE_URL}/models/grass.glb`;
+const GRASS_URL = modelUrl('grass.glb');
 
 export interface GrassCellsProps {
   cells: Array<{ c: number; r: number }>;

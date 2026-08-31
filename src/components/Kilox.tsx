@@ -7,11 +7,10 @@ import {
   useSceneBubble,
   type DescriptionId,
 } from '../state/sceneStore';
-import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
-const base = import.meta.env.BASE_URL;
-const KILOX_URL = `${base}/models/kilox-90.glb`;
+const KILOX_URL = modelUrl('kilox-90.glb');
 
 export interface KiloxProps {
   position: [number, number, number];
@@ -19,7 +18,6 @@ export interface KiloxProps {
   rotationY?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
-  label?: string;
   /** 场景对应的描述 id */
   descriptionId?: DescriptionId;
   /** 场景占用的道路单元格（列,行） */
@@ -32,7 +30,6 @@ export function Kilox({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
-  label,
   descriptionId = 'Kilox',
   pathCells,
 }: KiloxProps) {

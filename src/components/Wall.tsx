@@ -2,10 +2,10 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useGraph } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { CELL_SCALE } from '../constants/global';
+import { CELL_SCALE, modelUrl } from '../constants/global';
 
 // GLTF 资产位置
-const SAKURA_URL = `${import.meta.env.BASE_URL}/models/sakura-tree.glb`;
+const SAKURA_URL = modelUrl('sakura-tree.glb');
 
 /** (c,r) 种子的确定性 LCG 伪随机 */
 export function createLcg(c: number, r: number) {

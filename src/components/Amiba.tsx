@@ -122,12 +122,10 @@ import {
   sceneState,
   type DescriptionId,
 } from '../state/sceneStore';
-import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
-import { CELL_SCALE } from '../constants/global'
+import { CELL_SCALE, modelUrl } from '../constants/global'
 
-const base = import.meta.env.BASE_URL;
-const Amiba_URL = `${base}/models/amiba-95.glb`;
+const Amiba_URL = modelUrl('amiba-95.glb');
 
 export interface AmibaProps {
   position: [number, number, number];

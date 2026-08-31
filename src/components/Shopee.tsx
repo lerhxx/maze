@@ -7,14 +7,13 @@ import {
   useSceneBubble,
   type DescriptionId,
 } from '../state/sceneStore';
-import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
-const base = import.meta.env.BASE_URL;
-// const SHOPEE_URL = `${base}/models/shopee.glb`;
-const SHOPEE_URL = `${base}/models/shopee-scene-90.glb`;
-// const SHEBI_URL = `${base}/models/shebi.glb`;
-// const HEBI_URL = `${base}/models/hebi.glb`;
+// const SHOPEE_URL = modelUrl('shopee.glb');
+const SHOPEE_URL = modelUrl('shopee-scene-90.glb');
+// const SHEBI_URL = modelUrl('shebi.glb');
+// const HEBI_URL = modelUrl('hebi.glb');
 
 export interface ShopeeProps {
   position: [number, number, number];
@@ -22,7 +21,6 @@ export interface ShopeeProps {
   rotationY?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
-  label?: string;
   descriptionId?: DescriptionId;
   pathCells?: Array<{ c: number; r: number }>;
 }
@@ -33,7 +31,6 @@ export function Shopee({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
-  label,
   descriptionId = 'Shopee',
   pathCells,
 }: ShopeeProps) {

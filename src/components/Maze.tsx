@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { MazeData, PathCell, PathDirection } from '../game/types';
 import { CELL_SCALE, Dierection } from '../constants/global';
@@ -15,9 +15,7 @@ import { Shopee } from './Shopee';
 import { Kilox } from './Kilox';
 import { Huawei } from './Huawei';
 import { Amiba } from './Amiba';
-import { MilkTea } from '../scenes/MilkTea';
 import { Ocean } from './Ocean';
-import { SceneGround } from './SceneGround';
 import { LightBeam } from './LightBeam';
 import type { DescriptionId } from '../state/sceneStore';
 
@@ -29,8 +27,6 @@ interface ScenePlacement {
   pathFraction: number;
   /** 场景占用的单元格数（沿道路方向） */
   length: number;
-  /** 模型左侧显示的文字标签 */
-  label?: string;
   /** 场景描述 id（对应 descriptions.ts 中的 key） */
   descriptionId?: DescriptionId;
   /** 生成场景组件 */
@@ -38,7 +34,6 @@ interface ScenePlacement {
     position: [number, number, number],
     rotationY: number,
     size: number,
-    label: string | undefined,
     pathCells: Array<{ c: number; r: number }>,
     descriptionId?: DescriptionId,
   ) => ReactNode;
@@ -201,7 +196,7 @@ function findScenePlacements(
 
             contentMap.set(
               `${firstCell.c}-${firstCell.r}`,
-              placement.generateContent(position, rotationY, size, placement.label, segmentPathCells, placement.descriptionId),
+              placement.generateContent(position, rotationY, size, segmentPathCells, placement.descriptionId),
             );
           }
 
@@ -258,13 +253,12 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
     const pathLen = maze.solutionPath?.length ?? 0;
     if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>(), scenePathCells: [] as Array<ScenePathCellProps> };
     const step = 5 / pathLen;
-    console.log('pathLen', pathLen)
     return findScenePlacements(maze, [
       {
         pathFraction: 1 / 4,
         length: 1,
         descriptionId: 'Amiba',
-        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
+        generateContent: (position, rotationY, size, pathCells, descriptionId) => (
           <Amiba position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
@@ -272,24 +266,24 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         pathFraction: 1 / 4 + step,
         length: 1,
         descriptionId: 'Shopee',
-        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Shopee position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        generateContent: (position, rotationY, size, pathCells, descriptionId) => (
+          <Shopee position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
       {
         pathFraction: 1 / 4 + step * 2,
         length: 1,
         descriptionId: 'Huawei',
-        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Huawei position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        generateContent: (position, rotationY, size, pathCells, descriptionId) => (
+          <Huawei position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
       {
         pathFraction: 1 / 4 + step * 3,
         length: 1,
         descriptionId: 'Kilox',
-        generateContent: (position, rotationY, size, label, pathCells, descriptionId) => (
-          <Kilox position={position} size={size * 0.75} rotationY={rotationY} label={label} descriptionId={descriptionId} pathCells={pathCells} />
+        generateContent: (position, rotationY, size, pathCells, descriptionId) => (
+          <Kilox position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
     ]);
@@ -299,8 +293,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
   //   perimeterSakuraCells → 迷宫四边 → 樱花树贴边围绕
   //   interiorWallCells    → 所有内部墙（跳过场景占用格）→ 樱花树群
   //   grassCells           → 所有 wall cells（跳过场景占用格）→ grass 平铺
-  //   sceneGroundCells     → 场景占用格 → box 地面替代 grass
-  const { perimeterSakuraCells, interiorWallCells, grassCells, sceneGroundCells } = useMemo(() => {
+  const { perimeterSakuraCells, interiorWallCells, grassCells } = useMemo(() => {
     const sak: Array<{ c: number; r: number }> = [];
     const int: InteriorWallCell[] = [];
     const grass: Array<{ c: number; r: number }> = [];
@@ -325,7 +318,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         int.push({ c, r });
       }
     }
-    return { perimeterSakuraCells: sak, interiorWallCells: int, grassCells: grass, sceneGroundCells: sceneGnd };
+    return { perimeterSakuraCells: sak, interiorWallCells: int, grassCells: grass };
   }, [maze, w, h, occupiedCells]);
 
   return (
@@ -355,7 +348,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
         <InteriorTreesCells cells={interiorWallCells} occupiedCells={occupiedCells} />
       {/* </Suspense> */}
 
-      {/* 场景放置点（Kilox / Huawei / Shopee + label） */}
+      {/* 场景放置点（Kilox / Huawei / Shopee / Amiba */}
       <ScenePlacements contentMap={contentMap} />
 
       {/* 场景对应道路单元格上的光柱 */}

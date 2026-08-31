@@ -14,7 +14,7 @@ import {
   RUN_ANIM_SPEED,
   ANIM_BLEND_RATE,
 } from '../constants/player';
-import { CELL_SCALE, USE_MOUSE } from '../constants/global';
+import { CELL_SCALE, USE_MOUSE, modelUrl } from '../constants/global';
 import { updatePlayerPathCell, sceneState } from '../state/sceneStore';
 
 // 防穿墙：每步最大位移 = 0.2 个单元格（世界单位）
@@ -22,7 +22,7 @@ const MAX_STEP = 0.2 * CELL_SCALE;
 // 走到墙边时留一点 epsilon，防止贴墙抖动
 const MOVE_EPSILON = 0.05;
 
-const PLAYER_URL = `${import.meta.env.BASE_URL}/models/player.glb`;
+const PLAYER_URL = modelUrl('player.glb');
 
 // 模型本体高约 1.7，脚底在 y=0；Mixamo 模型默认面向 +Z，
 // 而本游戏 forward(yaw=0) = -Z，故需要 π 的朝向补偿。

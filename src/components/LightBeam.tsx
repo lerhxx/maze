@@ -3,7 +3,6 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Dierection, CELL_SCALE } from '../constants/global';
 import type { DierectionType } from '../constants/global';
-import { WALL_HEIGHT } from '../constants/wall';
 import { sceneState } from '../state/sceneStore';
 
 export interface LightBeamProps {
@@ -36,9 +35,6 @@ export function LightBeam({
   position,
   radius = 0.3,
   tube = 0.1,
-  height = WALL_HEIGHT,
-  radiusTop,
-  radiusBottom,
   sceneDir = Dierection.Top
 }: LightBeamProps) {
   // 往场景方向靠（局部计算，不改动 props）

@@ -139,7 +139,7 @@ export function Description({ id, onClose }: DescriptionProps) {
           <div className="lpd-avatar-wrap">
             <img
               className="lpd-avatar"
-              src={`${import.meta.env.BASE_URL}/avatar.png`}
+              src={`${import.meta.env.BASE_URL}/avatar.webp`}
               alt="Q版头像"
               draggable={false}
             />

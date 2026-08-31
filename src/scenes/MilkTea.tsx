@@ -3,12 +3,11 @@ import * as THREE from 'three';
 import {
   type DescriptionId,
 } from '../state/sceneStore';
-import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
-const base = import.meta.env.BASE_URL;
-// const MILK_TEA_URL = `${base}/models/milk-tea.glb`;
-const MILK_TEA_URL = `${base}/models/amiba-95.glb`;
+// const MILK_TEA_URL = modelUrl('milk-tea.glb');
+const MILK_TEA_URL = modelUrl('amiba-95.glb');
 
 export interface MilkTeaProps {
   position: [number, number, number];

@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useRef } from 'react';
-import { Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { CELL_SCALE, SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 // import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
@@ -11,7 +10,7 @@ import {
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
 // const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
-const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei-scene-90.glb`;
+const HUAWEI_URL = modelUrl('huawei-scene-90.glb');
 
 export interface HuaweiProps {
   position: [number, number, number];
@@ -19,7 +18,6 @@ export interface HuaweiProps {
   rotationY?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
-  label?: string;
   descriptionId?: DescriptionId;
   pathCells?: Array<{ c: number; r: number }>;
 }
@@ -30,7 +28,6 @@ export function Huawei({
   rotationY = 0,
   castShadow = true,
   receiveShadow = true,
-  label,
   descriptionId = 'Huawei',
   pathCells,
 }: HuaweiProps) {
@@ -58,19 +55,6 @@ export function Huawei({
         <Suspense fallback={null}>
           <HuaweiModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
         </Suspense>
-      )}
-      {label && (
-        <Text
-          position={[-size / 2 - CELL_SCALE * 0.1, size * 0.25, 0]}
-          fontSize={CELL_SCALE * 0.15}
-          color="#ffcc33"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#333333"
-        >
-          {label}
-        </Text>
       )}
 
       {/* <EnvelopeLine
