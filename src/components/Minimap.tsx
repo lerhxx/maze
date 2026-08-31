@@ -26,12 +26,12 @@ export function Minimap({ gameRef }: MinimapProps) {
       const offsetX = (MINIMAP_SIZE - w * cellSize) / 2;
       const offsetY = (MINIMAP_SIZE - h * cellSize) / 2;
 
-      // Clear
-      ctx.fillStyle = '#0a0a12';
+      // Clear：暖奶油底色，与 HUD 暖光主题一致
+      ctx.fillStyle = '#f4e7d2';
       ctx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
 
       // Draw visited cells background（只画道路单元格）
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = '#e7cf9f';
       for (const key of visitedCells) {
         const [c, r] = key.split(',').map(Number);
         const cell = maze.cells[c]?.[r];
@@ -46,7 +46,7 @@ export function Minimap({ gameRef }: MinimapProps) {
 
       // 用线段描出墙壁边：对每个已访问的 path 单元格，
       // 若其四方向相邻格是墙或越界，则画那条边作为线段
-      ctx.strokeStyle = '#6a7a9e';
+      ctx.strokeStyle = '#a07c54';
       ctx.lineWidth = 1.5;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -112,8 +112,8 @@ export function Minimap({ gameRef }: MinimapProps) {
       const px = offsetX + (playerX / CELL_SCALE) * cellSize;
       const pz = offsetY + (playerZ / CELL_SCALE) * cellSize;
 
-      // Vision cone
-      ctx.fillStyle = 'rgba(255, 204, 119, 0.12)';
+      // Vision cone（暖金）
+      ctx.fillStyle = 'rgba(184, 148, 31, 0.16)';
       ctx.beginPath();
       ctx.moveTo(px, pz);
       const coneRange = Math.PI / 3;
@@ -122,9 +122,9 @@ export function Minimap({ gameRef }: MinimapProps) {
       ctx.closePath();
       ctx.fill();
 
-      // Player dot
-      ctx.fillStyle = '#ffeeaa';
-      ctx.shadowColor = '#ffcc77';
+      // Player dot（暖紫，在奶油底上清晰可见）
+      ctx.fillStyle = '#5c3a4a';
+      ctx.shadowColor = '#b8941f';
       ctx.shadowBlur = 8;
       ctx.beginPath();
       ctx.arc(px, pz, cellSize * 0.3, 0, Math.PI * 2);
@@ -133,7 +133,7 @@ export function Minimap({ gameRef }: MinimapProps) {
 
       // Direction indicator
       const dirAngle = -Math.PI / 2 - playerYaw;
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = '#5c3a4a';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(px, pz);

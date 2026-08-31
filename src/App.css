@@ -516,10 +516,20 @@ body,
 /* ===== HUD ===== */
 
 .hud {
+  /* 暖光色调：与菜单 / 胜利页一致（plum + 金 + 奶油），叠在 3D 场景上 */
+  --hud-plum: #5c3a4a;
+  --hud-plum-soft: #8a6172;
+  --hud-cream: rgba(255, 250, 247, 0.8);
+  --hud-gold: #d4af37;
+  --hud-gold-light: #f0d878;
+  --hud-gold-dark: #b8941f;
+  --hud-border: rgba(212, 175, 55, 0.4);
+
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 10;
+  color: var(--hud-plum);
 }
 
 /* Capture (offscreen render) */
@@ -540,21 +550,25 @@ body,
   align-items: center;
   gap: 7px;
   padding: 8px 16px;
-  background: rgba(10, 10, 20, 0.65);
-  border: 1px solid rgba(120, 130, 200, 0.25);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 999px;
   backdrop-filter: blur(8px);
-  color: #ddd;
+  color: var(--hud-plum);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  box-shadow: 0 4px 14px rgba(146, 108, 74, 0.18);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease,
+    box-shadow 0.18s ease;
 }
 
 .capture-btn:hover:not(:disabled) {
-  background: rgba(40, 46, 90, 0.8);
-  border-color: rgba(150, 160, 240, 0.5);
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(212, 175, 55, 0.6);
+  color: var(--hud-gold-dark);
+  box-shadow: 0 6px 18px rgba(184, 148, 31, 0.3);
 }
 
 .capture-btn:active:not(:disabled) {
@@ -573,27 +587,27 @@ body,
 .capture-status {
   max-width: 220px;
   padding: 5px 10px;
-  background: rgba(10, 10, 20, 0.7);
-  border: 1px solid rgba(120, 130, 200, 0.25);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 8px;
   backdrop-filter: blur(8px);
   font-size: 11px;
   line-height: 1.5;
-  color: #9fe8c0;
+  color: var(--hud-plum);
   word-break: break-all;
 }
 
 .capture-status.error {
-  color: #ff9d9d;
-  border-color: rgba(220, 120, 120, 0.4);
+  color: #c9566e;
+  border-color: rgba(201, 86, 110, 0.45);
 }
 
 .capture-preview {
   display: block;
   width: 160px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 130, 200, 0.3);
-  background: rgba(10, 10, 20, 0.7);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: var(--hud-cream);
 }
 
 .hud-timer {
@@ -605,13 +619,14 @@ body,
   align-items: center;
   gap: 8px;
   padding: 8px 18px;
-  background: rgba(10, 10, 20, 0.65);
-  border: 1px solid rgba(120, 130, 200, 0.25);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 999px;
   backdrop-filter: blur(8px);
   font-size: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 14px rgba(146, 108, 74, 0.18);
 }
 
 .hud-timer-icon {
@@ -624,11 +639,12 @@ body,
   position: absolute;
   top: 18px;
   right: 18px;
-  background: rgba(10, 10, 20, 0.7);
-  border: 1px solid rgba(120, 130, 200, 0.3);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 12px;
   padding: 10px;
   backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(146, 108, 74, 0.18);
 }
 
 .minimap-canvas {
@@ -639,7 +655,7 @@ body,
 .minimap-label {
   text-align: center;
   font-size: 11px;
-  color: #8a8aae;
+  color: var(--hud-plum-soft);
   margin-top: 6px;
   letter-spacing: 2px;
 }
@@ -650,16 +666,17 @@ body,
   position: absolute;
   bottom: 18px;
   left: 18px;
-  background: rgba(10, 10, 20, 0.65);
-  border: 1px solid rgba(120, 130, 200, 0.25);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 12px;
   padding: 12px 16px;
   backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(146, 108, 74, 0.18);
 }
 
 .hud-controls-title {
   font-size: 11px;
-  color: #8a8aae;
+  color: var(--hud-plum-soft);
   letter-spacing: 2px;
   margin-bottom: 8px;
 }
@@ -669,14 +686,14 @@ body,
   grid-template-columns: auto auto;
   gap: 4px 12px;
   font-size: 12px;
-  color: #a8a8c8;
+  color: var(--hud-plum-soft);
 }
 
 .hud-controls-grid .key {
-  color: #ddd;
+  color: var(--hud-plum);
   font-weight: 600;
   font-size: 11.5px;
-  background: rgba(60, 65, 110, 0.6);
+  background: rgba(212, 175, 55, 0.18);
   border-radius: 4px;
   padding: 1px 6px;
   text-align: center;
@@ -689,22 +706,30 @@ body,
   bottom: 18px;
   right: 18px;
   padding: 10px 16px;
-  background: rgba(10, 10, 20, 0.65);
-  border: 1px solid rgba(120, 130, 200, 0.25);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 12px;
   backdrop-filter: blur(8px);
   font-size: 13px;
-  color: #a8a8c8;
+  color: var(--hud-plum-soft);
+  box-shadow: 0 4px 14px rgba(146, 108, 74, 0.18);
 }
 
 .hud-goal-exit {
-  color: #00ff99;
+  /* 保持绿色：对应场景里的绿色传送门，作为语义强调色 */
+  color: #1b7551;
   font-weight: 600;
 }
 
 /* Click-to-play hint */
 
 .click-hint {
+  /* 与 HUD 同一套暖光变量（该层不依赖 .hud 继承） */
+  --hud-plum: #5c3a4a;
+  --hud-plum-soft: #8a6172;
+  --hud-cream: rgba(255, 250, 247, 0.8);
+  --hud-border: rgba(212, 175, 55, 0.4);
+
   position: absolute;
   inset: 0;
   display: flex;
@@ -717,10 +742,11 @@ body,
 .click-hint-box {
   text-align: center;
   padding: 24px 36px;
-  background: rgba(10, 10, 20, 0.8);
-  border: 1px solid rgba(120, 130, 200, 0.35);
+  background: var(--hud-cream);
+  border: 1px solid var(--hud-border);
   border-radius: 16px;
   backdrop-filter: blur(10px);
+  color: var(--hud-plum);
   animation: hintPulse 2s ease-in-out infinite;
 }
 
@@ -737,7 +763,7 @@ body,
 .click-hint-sub {
   margin-top: 8px;
   font-size: 12px;
-  color: #8a8aae;
+  color: var(--hud-plum-soft);
 }
 
 /* ===== Win Screen ===== */
