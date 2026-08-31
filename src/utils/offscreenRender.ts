@@ -4,15 +4,31 @@ import type { Camera, Scene, WebGLRenderer } from 'three';
 /**
  * 离屏渲染（WebGLRenderTarget）工具。
  *
- * 渲染分两趟（two-pass）：
- *  1) 把场景渲进 RenderTarget A（线性色空间 + 半浮点以保留 HDR，可超采样）；
- *     three 渲染到 RenderTarget 时**不会**做 tone mapping，也不会做输出色空间编码，
- *     所以 A 里是「原始线性颜色」，直接读出来会比屏幕暗；
- *  2) 用一个全屏四边形采样 A，手动补上 tone mapping + linear→sRGB 编码，
- *     渲进 RenderTarget B（8bit，输出尺寸），再 readRenderTargetPixels 读回 CPU，
- *     翻转 Y 后写进 2D canvas。
+ * 关键点：three 渲染到 RenderTarget 时会**跳过**两件事（见 WebGLPrograms 源码，
+ * 只有 `currentRenderTarget === null` 才生效）：
+ *   1. tone mapping
+ *   2. 输出色空间编码（linear → sRGB）
+ * 所以直接把 RT 里的颜色读出来会明显偏暗。
  *
- * 这样导出的 PNG 与屏幕所见一致，且不受 canvas 尺寸限制。
+ * 但也不能在后期 pass 里对「整幅图」补 tone mapping——three 的 tone mapping 是
+ * **逐材质在片元着色器里**做的，背景（clear color）和 `toneMapped = false` 的材质
+ * 本来就不参与，半透明物体也是「先 tone mapping 再混合」。整幅图补一遍会把
+ * 背景一起压暗（本项目背景是白色，会被压成灰白），画面就会发灰、不通透。
+ *
+ * 因此这里让 three 把这个 RenderTarget 当作「最终输出」来渲染：
+ * 标记为 `isXRRenderTarget` —— three 官方为「离屏渲染出与屏幕一致的结果」
+ * 提供的分支（见 three issue #27868），它同时覆盖：
+ *   · WebGLPrograms：材质应用 tone mapping、按 RT 的 colorSpace 做输出编码
+ *   · getUnlitUniformColorSpace：背景 clear color 也按同一 colorSpace 处理
+ * 再配合把 `texture.colorSpace` 设成 `gl.outputColorSpace`，
+ * 每个材质、每个透明层、以及背景都会像渲染到 canvas 一样被处理，
+ * RT 里就是与屏幕逐像素一致的画面，第二趟原样搬出来即可。
+ * （若日后升级 three 后画面重新变暗/发灰，先确认该分支是否仍存在。）
+ *
+ * 渲染分两趟：
+ *  1) 场景 → sceneTarget（超采样尺寸，内容与 canvas 一致）
+ *  2) 全屏四边形把 sceneTarget 缩放回输出尺寸（2× 超采样回缩 = 2×2 盒式抗锯齿，
+ *     且和 canvas 的 MSAA 一样在编码后的空间里平均），再 readRenderTargetPixels 读回。
  */
 
 /** 离屏渲染所需的最小上下文，由 <Canvas> 内部的组件注册进来 */
@@ -42,7 +58,7 @@ export interface OffscreenCaptureOptions {
   scale?: number;
   /** 内部超采样倍数，渲染后缩放回输出尺寸实现抗锯齿，默认 2 */
   supersample?: number;
-  /** MSAA 采样数，默认 0（超采样已提供抗锯齿，需要时可手动开启） */
+  /** MSAA 采样数；默认：超采样时 0（超采样已提供抗锯齿），否则 4 */
   samples?: number;
   /** 文件名（不含扩展名），默认 maze-<时间戳> */
   filename?: string;
@@ -60,6 +76,7 @@ export interface OffscreenCaptureResult {
   filename: string;
 }
 
+/** 全屏四边形：顶点直接输出裁剪空间坐标 */
 const VERTEX_SHADER = /* glsl */ `
 varying vec2 vUv;
 
@@ -69,106 +86,16 @@ void main() {
 }
 `;
 
-/** 第二趟：tone mapping + sRGB 编码（等价于 three 的 tonemapping_fragment / colorspace_fragment） */
+/** 第二趟只做缩放搬运：颜色在上一趟已经和屏幕完全一致，不能再动 */
 const FRAGMENT_SHADER = /* glsl */ `
 uniform sampler2D tDiffuse;
-uniform float uExposure;
-uniform int uToneMapping;
 
 varying vec2 vUv;
 
-vec3 toneMapLinear( vec3 color ) {
-  return clamp( uExposure * color, 0.0, 1.0 );
-}
-
-vec3 toneMapReinhard( vec3 color ) {
-  color *= uExposure;
-  return clamp( color / ( vec3( 1.0 ) + color ), 0.0, 1.0 );
-}
-
-vec3 toneMapCineon( vec3 color ) {
-  color *= uExposure;
-  color = max( vec3( 0.0 ), color - 0.004 );
-  return pow( ( color * ( 6.2 * color + 0.5 ) ) / ( color * ( 6.2 * color + 1.7 ) + 0.06 ), vec3( 2.2 ) );
-}
-
-vec3 RRTAndODTFit( vec3 v ) {
-  vec3 a = v * ( v + 0.0245786 ) - 0.000090537;
-  vec3 b = v * ( 0.983729 * v + 0.4329510 ) + 0.238081;
-  return a / b;
-}
-
-vec3 toneMapACESFilmic( vec3 color ) {
-  const mat3 ACESInputMat = mat3(
-    vec3( 0.59719, 0.07600, 0.02840 ),
-    vec3( 0.35458, 0.90834, 0.13383 ),
-    vec3( 0.04823, 0.01566, 0.83777 )
-  );
-  const mat3 ACESOutputMat = mat3(
-    vec3(  1.60475, -0.10208, -0.00327 ),
-    vec3( -0.53108,  1.10813, -0.07276 ),
-    vec3( -0.07367, -0.00605,  1.07602 )
-  );
-  color *= uExposure / 0.6;
-  color = ACESInputMat * color;
-  color = RRTAndODTFit( color );
-  color = ACESOutputMat * color;
-  return clamp( color, 0.0, 1.0 );
-}
-
-vec3 linearToSRGB( vec3 color ) {
-  color = max( color, vec3( 0.0 ) );
-  return mix(
-    pow( color, vec3( 0.41666 ) ) * 1.055 - vec3( 0.055 ),
-    color * 12.92,
-    vec3( lessThanEqual( color, vec3( 0.0031308 ) ) )
-  );
-}
-
 void main() {
-  vec4 texel = texture2D( tDiffuse, vUv );
-  vec3 color = texel.rgb;
-
-  if ( uToneMapping == 1 ) {
-    color = toneMapLinear( color );
-  } else if ( uToneMapping == 2 ) {
-    color = toneMapReinhard( color );
-  } else if ( uToneMapping == 3 ) {
-    color = toneMapCineon( color );
-  } else if ( uToneMapping == 4 ) {
-    color = toneMapACESFilmic( color );
-  }
-
-  gl_FragColor = vec4( clamp( linearToSRGB( color ), 0.0, 1.0 ), texel.a );
+  gl_FragColor = texture2D( tDiffuse, vUv );
 }
 `;
-
-/** three 的 toneMapping 常量 → 着色器里的模式编号 */
-function toneMappingToMode(toneMapping: THREE.ToneMapping): number {
-  switch (toneMapping) {
-    case THREE.LinearToneMapping:
-      return 1;
-    case THREE.ReinhardToneMapping:
-      return 2;
-    case THREE.CineonToneMapping:
-      return 3;
-    case THREE.ACESFilmicToneMapping:
-      return 4;
-    case THREE.AgXToneMapping:
-    case THREE.NeutralToneMapping:
-      console.warn('[offscreenRender] 暂不支持该 tone mapping，已回退为 ACESFilmic');
-      return 4;
-    default:
-      return 0;
-  }
-}
-
-function supportsHalfFloatRenderTarget(gl: WebGLRenderer): boolean {
-  return (
-    gl.extensions.has('EXT_color_buffer_half_float') ||
-    gl.extensions.has('EXT_color_buffer_float')
-  );
-}
 
 function createTimestampName(): string {
   const now = new Date();
@@ -251,12 +178,16 @@ export function renderOffscreenToCanvas(
     MAX_RENDER_PIXELS,
   );
 
-  const samples = Math.max(0, Math.min(options.samples ?? 0, gl.capabilities.maxSamples));
+  const requestedSamples = options.samples ?? (supersample > 1 ? 0 : 4);
+  const samples = Math.max(0, Math.min(requestedSamples, gl.capabilities.maxSamples));
 
-  // 第一趟：线性 HDR 场景
+  // 第一趟：场景（内容与 canvas 完全一致）
   const sceneTarget = new THREE.WebGLRenderTarget(render.width, render.height, {
-    type: supportsHalfFloatRenderTarget(gl) ? THREE.HalfFloatType : THREE.UnsignedByteType,
+    // 此时颜色已是输出色空间编码后的值，用 8bit 存即可，与 canvas 精度一致
+    type: THREE.UnsignedByteType,
     format: THREE.RGBAFormat,
+    // 让材质按 outputColorSpace 编码输出（= 渲染到 canvas 的行为）
+    colorSpace: gl.outputColorSpace as THREE.ColorSpace,
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     depthBuffer: true,
@@ -264,8 +195,14 @@ export function renderOffscreenToCanvas(
     generateMipmaps: false,
     samples,
   });
+  // 让 three 把这个 RT 当作「最终输出」：逐材质应用 tone mapping + 输出编码。
+  // 这是 three 给 WebXR 用的内部标记（WebGLRenderer 中 `isXRRenderTarget === true`
+  // 的几处分支），副作用仅为强制内部格式使用线性 transfer（见 getInternalFormat），
+  // 即不会在写入/读取时被硬件额外做一次 sRGB 编解码，正是我们需要的。
+  (sceneTarget as THREE.WebGLRenderTarget & { isXRRenderTarget?: boolean }).isXRRenderTarget =
+    true;
 
-  // 第二趟：tone mapping + sRGB 编码后的 8bit 结果（缩放回输出尺寸）
+  // 第二趟：缩放回输出尺寸后读回
   const outputTarget = new THREE.WebGLRenderTarget(out.width, out.height, {
     type: THREE.UnsignedByteType,
     format: THREE.RGBAFormat,
@@ -278,11 +215,7 @@ export function renderOffscreenToCanvas(
 
   const quadGeometry = new THREE.PlaneGeometry(2, 2);
   const quadMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      tDiffuse: { value: sceneTarget.texture },
-      uExposure: { value: gl.toneMappingExposure },
-      uToneMapping: { value: toneMappingToMode(gl.toneMapping) },
-    },
+    uniforms: { tDiffuse: { value: sceneTarget.texture } },
     vertexShader: VERTEX_SHADER,
     fragmentShader: FRAGMENT_SHADER,
     depthTest: false,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Difficulty, MazeData } from './game/types';
 import { generateMaze } from './game/mazeGenerator';
 import { DIFFICULTY_SIZES, DIFFICULTY_LABELS } from './constants/global';
@@ -52,9 +52,10 @@ function App() {
     setResult(null);
   };
 
-  useEffect(() => {
-    startGame();
-  }, [])
+  // 直接进入游戏（调试 3D 场景时可打开）
+  // useEffect(() => {
+  //   startGame();
+  // }, [])
 
   return (
     <div className="app">
@@ -82,7 +83,21 @@ function App() {
   );
 }
 
-// ===== Menu Screen =====
+// ===== Menu Screen（欢迎页）=====
+
+const WELCOME_URL = `${import.meta.env.BASE_URL}/welcome.png`;
+
+const MENU_KEY_LABELS: Record<string, string> = {
+  KeyW: 'W',
+  KeyA: 'A',
+  KeyS: 'S',
+  KeyD: 'D',
+  ArrowUp: '↑',
+  ArrowLeft: '←',
+  ArrowDown: '↓',
+  ArrowRight: '→',
+  KeyE: 'E',
+};
 
 function MenuScreen({
   onStart,
@@ -91,49 +106,202 @@ function MenuScreen({
   onStart: (diff: Difficulty) => void;
   bestRecords: Record<Difficulty, BestRecord | null>;
 }) {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const particlesRef = useRef<HTMLDivElement>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [leaving, setLeaving] = useState(false);
+
+  const stateRef = useRef({ difficulty, leaving });
+  stateRef.current = { difficulty, leaving };
+
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // 金色漂浮粒子
+  useEffect(() => {
+    const wrap = particlesRef.current;
+    if (!wrap) return;
+
+    const count = window.innerWidth < 600 ? 18 : 28;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('span');
+      const size = 2 + Math.random() * 4;
+      p.className = 'menu-particle';
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+      p.style.animationDuration = `${8 + Math.random() * 10}s`;
+      p.style.animationDelay = `${Math.random() * 10}s`;
+      frag.appendChild(p);
+    }
+    wrap.appendChild(frag);
+
+    return () => {
+      wrap.textContent = '';
+    };
+  }, []);
+
+  const launch = useCallback(() => {
+    if (stateRef.current.leaving) return;
+    stateRef.current.leaving = true;
+    setLeaving(true);
+    window.setTimeout(() => onStart(stateRef.current.difficulty), 430);
+  }, [onStart]);
+
+  // 真实按键 → 键位高亮；Space / Enter 进入
+  useEffect(() => {
+    const toggle = (code: string, on: boolean) => {
+      const label = MENU_KEY_LABELS[code];
+      if (!label) return;
+      sceneRef.current?.querySelectorAll<HTMLElement>('.menu-key').forEach((el) => {
+        if (el.dataset.key === label) el.classList.toggle('pressed', on);
+      });
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      toggle(e.code, true);
+      if (e.code === 'Space' || e.code === 'Enter') {
+        // 焦点在按钮上时交给按钮自己处理
+        if (e.target instanceof HTMLButtonElement) return;
+        e.preventDefault();
+        launch();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => toggle(e.code, false);
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [launch]);
+
+  const record = bestRecords[difficulty];
+
   return (
-    <div className="menu-screen">
-      <div className="menu-content">
-        <div className="menu-title">
-          <span className="menu-title-icon">🌀</span>
-          <h1>迷 宫 探 险</h1>
-          <p className="menu-subtitle">MAZE ESCAPE · 3D 第一人称迷宫</p>
-        </div>
+    <div
+      ref={sceneRef}
+      className={`menu-scene${leaving ? ' leaving' : ''}`}
+      role="main"
+      aria-label="迷宫探险启动界面"
+    >
+      {/* 背景：多巴胺渐变 + 彩色光斑 + welcome.png 的模糊副本 */}
+      <div className="menu-bg-gradient" aria-hidden="true" />
+      {/* <div
+        className="menu-bg-blur"
+        style={{ backgroundImage: `url(${WELCOME_URL})` }}
+        aria-hidden="true"
+      /> */}
+      <div className="menu-blobs" aria-hidden="true">
+        <span className="menu-blob menu-blob--sky" />
+        <span className="menu-blob menu-blob--coral" />
+        <span className="menu-blob menu-blob--pink" />
+      </div>
+      <div className="menu-particles" ref={particlesRef} aria-hidden="true" />
 
-        <div className="menu-difficulty">
-          <h2>选择难度</h2>
-          {(Object.keys(DIFFICULTY_SIZES) as Difficulty[]).map((diff) => {
-            const record = bestRecords[diff];
-            return (
-              <button
-                key={diff}
-                className="menu-btn"
-                onClick={() => onStart(diff)}
-              >
-                <span className="menu-btn-name">{DIFFICULTY_LABELS[diff]}</span>
-                <span className="menu-btn-record">
-                  {record ? `最佳: ${formatTime(record.seconds)}` : '暂无记录'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <h1 className="menu-title">欢迎来到我的迷宫</h1>
 
-        <div className="menu-rules">
-          <h2>玩法说明</h2>
-          <ul>
-            <li>🔴 你从 <b>红色起点</b> 出发</li>
-            <li>🟢 找到对角的 <b>绿色传送门</b> 即可获胜</li>
-            <li>🗺️ 小地图只显示你走过的区域</li>
-            <li>⌨️ WASD 移动 · 鼠标视角 · 方向键备用</li>
-          </ul>
-        </div>
+      <div className="menu-main">
+        <aside className="menu-panel menu-panel-left" aria-label="移动快捷键">
+          <div className="menu-panel-title">
+            <span className="menu-panel-icon">✦</span>
+            <span>移动</span>
+          </div>
+          <div className="menu-key-cluster menu-key-wasd" aria-label="WASD 方向键">
+            {['W', 'A', 'S', 'D'].map((k) => (
+              <div key={k} className="menu-key" data-key={k}>
+                {k}
+              </div>
+            ))}
+          </div>
+          <div className="menu-panel-note">WASD 控制前后左右移动</div>
+        </aside>
+
+        <section className="menu-stage" aria-label="迷宫之门">
+          <img
+            className="menu-stage-img"
+            src={WELCOME_URL}
+            alt="欢迎来到我的迷宫"
+          />
+        </section>
+
+        <aside className="menu-panel menu-panel-right" aria-label="视角与互动快捷键">
+          <div className="menu-panel-title">
+            <span className="menu-panel-icon">✦</span>
+            <span>视角 / 互动</span>
+          </div>
+          <div className="menu-key-cluster menu-key-arrows" aria-label="方向键控制视角">
+            {['↑', '←', '↓', '→'].map((k) => (
+              <div key={k} className="menu-key" data-key={k}>
+                {k}
+              </div>
+            ))}
+          </div>
+          <div className="menu-mouse-hint">
+            <svg className="menu-mouse-icon" viewBox="0 0 28 40" aria-hidden="true">
+              <rect
+                x="2"
+                y="2"
+                width="24"
+                height="36"
+                rx="12"
+                fill="none"
+                stroke="#d4af37"
+                strokeWidth="2"
+              />
+              <line
+                x1="14"
+                y1="8"
+                x2="14"
+                y2="16"
+                stroke="#d4af37"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <circle cx="14" cy="6" r="2" fill="#d4af37" />
+            </svg>
+            <span>
+              移动鼠标控制视角
+              <br />
+              点击画面锁定鼠标
+            </span>
+          </div>
+          {/* <div className="menu-e-hint">
+            <div className="menu-key pink" data-key="E">
+              E
+            </div>
+            <span>打开信封</span>
+          </div> */}
+        </aside>
+      </div>
+
+      <div className="menu-enter-wrap">
+        {/* <div className="menu-diff" role="group" aria-label="选择难度">
+          {(Object.keys(DIFFICULTY_SIZES) as Difficulty[]).map((diff) => (
+            <button
+              key={diff}
+              type="button"
+              className={`menu-chip${diff === difficulty ? ' active' : ''}`}
+              aria-pressed={diff === difficulty}
+              onClick={() => setDifficulty(diff)}
+            >
+              {DIFFICULTY_LABELS[diff]}
+            </button>
+          ))}
+        </div> */}
+
+        <button type="button" className="menu-enter-btn" onClick={launch} aria-label="进入游戏">
+          {leaving ? '进入中…' : '进入'}
+        </button>
+
+        {/* <p className="menu-enter-hint">
+          按 Space 或 Enter 也可进入 · {record ? `最佳 ${formatTime(record.seconds)}` : '暂无记录'}
+        </p> */}
       </div>
     </div>
   );
