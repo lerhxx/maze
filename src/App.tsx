@@ -11,22 +11,39 @@ interface BestRecord {
   date: string;
 }
 
+/** 进入场景时 loading 最短展示时长（ms），避免 spinner 一闪而过 */
+const MIN_LOADING_MS = 700;
+
+
 function App() {
   const [status, setStatus] = useState<'menu' | 'playing' | 'won'>('menu');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [maze, setMaze] = useState<MazeData | null>(null);
   const [result, setResult] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const loadingStartRef = useRef(0);
   const [bestRecords, setBestRecords] = useState<Record<Difficulty, BestRecord | null>>({
     easy: null,
     medium: null,
     hard: null,
   });
 
+  // 场景就绪后收起 loading；保证至少显示 MIN_LOADING_MS，让 spinner 可见
+  const handleSceneReady = useCallback(() => {
+    const elapsed = Date.now() - loadingStartRef.current;
+    const wait = Math.max(0, MIN_LOADING_MS - elapsed);
+    window.setTimeout(() => setLoading(false), wait);
+  }, []);
+
   const startGame = (diff: Difficulty = 'easy') => {
     const { w, h } = DIFFICULTY_SIZES[diff];
     setDifficulty(diff);
     setMaze(generateMaze(w, h));
+    loadingStartRef.current = Date.now();
+    setLoading(true);
     setStatus('playing');
+    // 安全兜底：若场景未回调 onReady，也强制结束 loading
+    window.setTimeout(() => setLoading(false), 4000);
   };
 
   const handleWin = (elapsed: number) => {
@@ -50,6 +67,7 @@ function App() {
     setStatus('menu');
     setMaze(null);
     setResult(null);
+    setLoading(false);
   };
 
   // 直接进入游戏（调试 3D 场景时可打开）
@@ -67,8 +85,14 @@ function App() {
       )}
 
       {status === 'playing' && maze && (
-         <MazeGame maze={maze} onWin={handleWin} />
+         <MazeGame
+           maze={maze}
+           onWin={handleWin}
+           onReady={handleSceneReady}
+         />
       )}
+
+      {loading && <LoadingScreen />}
 
       {status === 'won' && result !== null && (
         <WinScreen
@@ -302,6 +326,29 @@ function MenuScreen({
         {/* <p className="menu-enter-hint">
           按 Space 或 Enter 也可进入 · {record ? `最佳 ${formatTime(record.seconds)}` : '暂无记录'}
         </p> */}
+      </div>
+    </div>
+  );
+}
+
+// ===== Loading Screen =====
+
+function LoadingScreen() {
+  return (
+    <div className="loading-overlay" role="status" aria-live="polite">
+      <div className="loading-card">
+        <div className="loading-stars" aria-hidden="true">
+          <span className="loading-star loading-star--left">✦</span>
+          <span className="loading-star loading-star--right">✦</span>
+        </div>
+        {/* <h1 className="loading-title">加载中…</h1> */}
+        <h1 className="loading-title">准备好了吗？</h1>
+        <div className="loading-progress" aria-label="加载进度">
+          <div className="loading-progress-track">
+            <div className="loading-progress-fill" />
+          </div>
+        </div>
+        {/* <p className="loading-subtitle">正在准备迷宫资源…</p> */}
       </div>
     </div>
   );

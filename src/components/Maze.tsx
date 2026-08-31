@@ -258,6 +258,7 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
     const pathLen = maze.solutionPath?.length ?? 0;
     if (pathLen < 10) return { contentMap: new Map<string, ReactNode>(), occupiedCells: new Set<string>(), scenePathCells: [] as Array<ScenePathCellProps> };
     const step = 5 / pathLen;
+    console.log('pathLen', pathLen)
     return findScenePlacements(maze, [
       {
         pathFraction: 1 / 4,
@@ -267,13 +268,6 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
           <Amiba position={position} size={size * 0.75} rotationY={rotationY} descriptionId={descriptionId} pathCells={pathCells} />
         ),
       },
-      // {
-      //   pathFraction: 1 / 4 + step,
-      //   length: 1,
-      //   generateContent: (position, rotationY, size) => (
-      //     <MilkTea position={position} size={size * 0.75} rotationY={rotationY} />
-      //   ),
-      // },
       {
         pathFraction: 1 / 4 + step,
         length: 1,

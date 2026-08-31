@@ -17,9 +17,10 @@ import { USE_MOUSE } from '../constants/global';
 interface MazeGameProps {
   maze: MazeData;
   onWin: (elapsedSeconds: number) => void;
+  onReady?: () => void;
 }
 
-export function MazeGame({ maze, onWin }: MazeGameProps) {
+export function MazeGame({ maze, onWin, onReady }: MazeGameProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [won, setWon] = useState(false);
   const startRef = useRef<number>(0);
@@ -90,6 +91,7 @@ export function MazeGame({ maze, onWin }: MazeGameProps) {
           ],
         }}
         className="game-canvas"
+        onCreated={() => onReady?.()}
       >
         <Perf position="top-left" />
         { !USE_MOUSE && <OrbitControls />}

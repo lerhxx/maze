@@ -898,3 +898,192 @@ body,
 .win-btn:active {
   transform: translateY(0);
 }
+
+/* ===== Loading Screen ===== */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(255, 253, 245, 0.8) 0%, rgba(255, 253, 245, 0.35) 55%, transparent 75%),
+    linear-gradient(135deg, #ffb3d9 0%, #ffe45e 50%, #7be0b5 100%);
+  animation: loadingFadeIn 0.25s ease;
+}
+
+.loading-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 48px 20px;
+  background: rgba(255, 253, 245, 0.96);
+  border: 4px solid #2a1f1a;
+  border-radius: 34px;
+  box-shadow: 9px 9px 0 #2a1f1a;
+  animation: loadingPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.loading-stars {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 34px;
+  pointer-events: none;
+}
+
+.loading-star {
+  font-size: 22px;
+  color: #ffe45e;
+  text-shadow:
+    2px 2px 0 #2a1f1a,
+    -1px -1px 0 #fff,
+    0 0 10px rgba(255, 228, 94, 0.8);
+  animation: loadingStarTwinkle 1.2s ease-in-out infinite alternate;
+}
+
+.loading-star--right {
+  animation-delay: -0.6s;
+}
+
+.loading-title {
+  margin: 0;
+  font-family: 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: clamp(18px, 1.5vw, 24px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 6px;
+  background: linear-gradient(
+    180deg,
+    #e0faff 0%,
+    #7be0ff 35%,
+    #4cc9f0 70%,
+    #3ddc97 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 3px #2a1f1a;
+  paint-order: stroke fill;
+  filter: drop-shadow(3px 3px 0 #fff) drop-shadow(0 0 12px rgba(76, 201, 240, 0.45));
+}
+
+.loading-progress {
+  width: min(320px, 78vw);
+  padding: 6px;
+  border: 4px solid #2a1f1a;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 5px 5px 0 #2a1f1a;
+}
+
+.loading-progress-track {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  border-radius: 999px;
+  background: #e2e2e2;
+  background-image:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 9px,
+      rgba(255, 255, 255, 0.65) 9px,
+      rgba(255, 255, 255, 0.65) 14px
+    );
+  overflow: hidden;
+}
+
+.loading-progress-fill {
+  position: relative;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #3ddc97 0%,
+    #ffe45e 30%,
+    #ff7a5c 60%,
+    #ff5fa2 100%
+  );
+  box-shadow:
+    inset 0 7px 6px rgba(255, 255, 255, 0.75),
+    inset 0 -4px 4px rgba(0, 0, 0, 0.1);
+  animation: loadingFill 1.5s ease-in-out infinite alternate;
+}
+
+.loading-progress-fill::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  right: 4px;
+  height: 40%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+}
+
+.loading-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg) translateX(-120%);
+  animation: loadingShine 1.5s ease-in-out infinite;
+}
+
+.loading-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #5c3a4a;
+}
+
+@keyframes loadingFill {
+  0% { width: 15%; }
+  100% { width: 100%; }
+}
+
+@keyframes loadingShine {
+  0% { transform: skewX(-20deg) translateX(-120%); }
+  40% { transform: skewX(-20deg) translateX(120%); }
+  100% { transform: skewX(-20deg) translateX(120%); }
+}
+
+@keyframes loadingStarTwinkle {
+  0% { transform: scale(0.92); opacity: 0.75; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes loadingPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes loadingFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-progress-fill,
+  .loading-progress-fill::after,
+  .loading-star,
+  .loading-overlay,
+  .loading-card { animation: none; }
+  .loading-progress-fill { width: 70%; }
+}
