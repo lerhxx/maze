@@ -159,7 +159,7 @@ export function LightBeam({
       </mesh> */}
 
       {/* 点光源：玩家进入时点亮（照亮光柱周围地面；玩家只是被光柱照亮，自身不发光） */}
-      <pointLight ref={lightRef} color="#dfe9ff" intensity={0} distance={4} decay={1.6} />
+      <pointLight ref={lightRef} color="#dfe9ff" intensity={0} distance={2} decay={0.5} />
     </group>
   );
 }

@@ -1,13 +1,14 @@
-import { useEffect, useMemo } from 'react';
-import { useGLTF, Text } from '@react-three/drei';
+import { Suspense, useEffect, useRef } from 'react';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { CELL_SCALE } from '../constants/global';
+import { CELL_SCALE, SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
 // import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
   type DescriptionId,
 } from '../state/sceneStore';
+import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
 // const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
 const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei-scene-90.glb`;
@@ -33,6 +34,10 @@ export function Huawei({
   descriptionId = 'Huawei',
   pathCells,
 }: HuaweiProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  // 懒加载：玩家靠近后才真正请求 huawei-scene-90.glb（约 8MB）
+  const active = useNearbyActive(groupRef, SCENE_MODEL_LOAD_RADIUS);
+
   useEffect(() => {
     if (!pathCells || pathCells.length === 0) return;
     const keySet = new Set(pathCells.map(({ c, r }) => `${c},${r}`));
@@ -42,43 +47,18 @@ export function Huawei({
 
   useSceneBubble(descriptionId);
 
-  const gltf = useGLTF(HUAWEI_URL);
-
-  const { clonedScene, normalizeScale, offsetY } = useMemo<{
-    clonedScene: THREE.Object3D;
-    normalizeScale: number;
-    offsetY: number;
-  }>(() => {
-    const cloned = (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
-    cloned.updateWorldMatrix(true, false);
-    const box = new THREE.Box3().setFromObject(cloned);
-    let scale = 1;
-    let yOff = 0;
-    if (!box.isEmpty()) {
-      const s = new THREE.Vector3();
-      box.getSize(s);
-      const maxDim = Math.max(s.x, Math.max(s.y, s.z));
-      if (maxDim > 0) scale = size / maxDim;
-      yOff = -box.min.y * scale + 0.065;
-    }
-    cloned.traverse((obj) => {
-      const maybeMesh = obj as unknown as { isMesh?: boolean };
-      if (maybeMesh.isMesh) {
-        const m = obj as unknown as THREE.Mesh;
-        m.castShadow = castShadow;
-        m.receiveShadow = receiveShadow;
-      }
-    });
-    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff };
-  }, [gltf.scene, size, castShadow, receiveShadow]);
-
   return (
-    <group position={[position[0], position[1] - 0.0, position[2] + 0.0]} rotation={[0, rotationY, 0]}>
-      <primitive
-        object={clonedScene}
-        position={[-0.005, offsetY, 0]}
-        scale={normalizeScale * 1.41}
-      />
+    <group
+      ref={groupRef}
+      position={[position[0], position[1] - 0.0, position[2] + 0.0]}
+      rotation={[0, rotationY, 0]}
+    >
+      {/* 主模型（懒加载：靠近后才挂载下载） */}
+      {active && (
+        <Suspense fallback={null}>
+          <HuaweiModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
+        </Suspense>
+      )}
       {label && (
         <Text
           position={[-size / 2 - CELL_SCALE * 0.1, size * 0.25, 0]}
@@ -98,6 +78,27 @@ export function Huawei({
       /> */}
 
     </group>
+  );
+}
+
+/** 真正下载 + 挂载 glb 的内层组件（放在 Suspense 内，加载期间不影响其余场景） */
+function HuaweiModel({
+  size,
+  castShadow,
+  receiveShadow,
+}: {
+  size: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+}) {
+  const huawei = useNormalizedModel(HUAWEI_URL, size, castShadow, receiveShadow);
+
+  return (
+    <primitive
+      object={huawei.clonedScene}
+      position={[-0.005, huawei.offsetY + 0.065, 0]}
+      scale={huawei.normalizeScale * 1.41}
+    />
   );
 }
 

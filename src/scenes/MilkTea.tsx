@@ -1,10 +1,10 @@
-import { useMemo, } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { Suspense, useRef } from 'react';
 import * as THREE from 'three';
-import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
   type DescriptionId,
 } from '../state/sceneStore';
+import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
 const base = import.meta.env.BASE_URL;
 // const MILK_TEA_URL = `${base}/models/milk-tea.glb`;
@@ -20,43 +20,6 @@ export interface MilkTeaProps {
   pathCells?: Array<{ c: number; r: number }>;
 }
 
-/** 加载 glb 并归一化：最大边长 -> targetSize，底部对齐 y=0
- *  有动画时用 SkeletonUtils.clone 正确克隆骨架 */
-function useNormalizedModel(
-  url: string,
-  targetSize: number,
-  castShadow: boolean,
-  receiveShadow: boolean,
-): { clonedScene: THREE.Object3D; normalizeScale: number; offsetY: number; animations: THREE.AnimationClip[] } {
-  const gltf = useGLTF(url);
-  return useMemo(() => {
-    // 有动画 → SkeletonUtils.clone 保留骨架绑定
-    const cloned = gltf.animations && gltf.animations.length > 0
-      ? SkeletonUtils.clone(gltf.scene) as THREE.Object3D
-      : (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
-    cloned.updateWorldMatrix(true, false);
-    const box = new THREE.Box3().setFromObject(cloned);
-    let scale = 1.5;
-    let yOff = 0;
-    if (!box.isEmpty()) {
-      const s = new THREE.Vector3();
-      box.getSize(s);
-      const maxDim = Math.max(s.x, Math.max(s.y, s.z));
-      if (maxDim > 0) scale = targetSize / maxDim;
-      yOff = -box.min.y * scale;
-    }
-    cloned.traverse((obj) => {
-      const maybeMesh = obj as unknown as { isMesh?: boolean };
-      if (maybeMesh.isMesh) {
-        const m = obj as unknown as THREE.Mesh;
-        m.castShadow = castShadow;
-        m.receiveShadow = receiveShadow;
-      }
-    });
-    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff, animations: gltf.animations ?? [] };
-  }, [gltf.scene, gltf.animations, targetSize, castShadow, receiveShadow]);
-}
-
 export function MilkTea({
   position,
   size = 1,
@@ -64,19 +27,44 @@ export function MilkTea({
   castShadow = true,
   receiveShadow = true,
 }: MilkTeaProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  // 懒加载：玩家靠近后才真正请求 glb
+  const active = useNearbyActive(groupRef, SCENE_MODEL_LOAD_RADIUS);
 
-  // 主模型 milk-tea：保留原有的 0.3 缩放 + offsetY=0.35
+  return (
+    <group
+      ref={groupRef}
+      position={[position[0], position[1] - 0.14, position[2]]}
+      rotation={[0, rotationY, 0]}
+    >
+      {/* milk-tea（懒加载：靠近后才挂载下载） */}
+      {active && (
+        <Suspense fallback={null}>
+          <MilkTeaModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
+        </Suspense>
+      )}
+    </group>
+  );
+}
+
+/** 真正下载 + 挂载 glb 的内层组件（放在 Suspense 内，加载期间不影响其余场景） */
+function MilkTeaModel({
+  size,
+  castShadow,
+  receiveShadow,
+}: {
+  size: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+}) {
   const milkTea = useNormalizedModel(MILK_TEA_URL, size, castShadow, receiveShadow);
 
   return (
-    <group position={[position[0], position[1] - 0.14, position[2]]} rotation={[0, rotationY, 0]}>
-      {/* milk-tea */}
-      <primitive
-        object={milkTea.clonedScene}
-        position={[0, 0.3, 0]}
-        scale={milkTea.normalizeScale}
-      />
-    </group>
+    <primitive
+      object={milkTea.clonedScene}
+      position={[0, 0.3, 0]}
+      scale={milkTea.normalizeScale}
+    />
   );
 }
 

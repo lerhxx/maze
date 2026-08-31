@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
@@ -69,19 +69,8 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
   const animSpeedRef = useRef(0);
   // 当前所处的光柱环 cellKey（边沿触发：只在"进入"瞬间打开弹窗）
   const inBeamRef = useRef<string | null>(null);
-
-  const { scene: playerModel, animations } = useGLTF(PLAYER_URL);
-  const { actions, mixer } = useAnimations(animations, groupRef);
-
-  // 播放唯一的 walking_man clip（走路/跑步/静止靠 timeScale 区分）
-  useEffect(() => {
-    const clip = animations[0];
-    const action = clip && actions[clip.name];
-    if (action) {
-      action.play();
-      mixer.timeScale = 0; // 初始静止
-    }
-  }, [actions, animations, mixer]);
+  // player.glb 懒加载：模型下载完成前 mixer 为空，先保证移动/碰撞逻辑可用
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
 
   // Reset when maze changes
   useEffect(() => {
@@ -242,7 +231,7 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       const targetSpeed = !isMoving ? 0 : isRunning ? RUN_ANIM_SPEED : WALK_ANIM_SPEED;
       const blend = 1 - Math.exp(-ANIM_BLEND_RATE * dt);
       animSpeedRef.current = THREE.MathUtils.lerp(animSpeedRef.current, targetSpeed, blend);
-      mixer.timeScale = animSpeedRef.current * 3;
+      if (mixerRef.current) mixerRef.current.timeScale = animSpeedRef.current * 3;
 
       if (USE_MOUSE) {
         // 越肩视角：相机位于 player 后上方，视线越过 player 投向前方道路
@@ -334,10 +323,40 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
 
   return (
     <group ref={groupRef} scale={MODEL_SCALE}>
-      <primitive object={playerModel} />
+      {/* player.glb 懒加载：下载完成前玩家已可正常移动 */}
+      <Suspense fallback={null}>
+        <PlayerModel groupRef={groupRef} mixerRef={mixerRef} />
+      </Suspense>
     </group>
   );
 }
 
-// 预加载模型，避免进入游戏时卡顿
-useGLTF.preload(PLAYER_URL);
+/** 真正下载 + 挂载 player.glb 的内层组件（Suspense 内，加载不阻塞主逻辑） */
+function PlayerModel({
+  groupRef,
+  mixerRef,
+}: {
+  groupRef: React.RefObject<THREE.Group | null>;
+  mixerRef: React.MutableRefObject<THREE.AnimationMixer | null>;
+}) {
+  const { scene: playerModel, animations } = useGLTF(PLAYER_URL);
+  const { actions, mixer } = useAnimations(animations, groupRef);
+
+  useEffect(() => {
+    mixerRef.current = mixer;
+    return () => {
+      mixerRef.current = null;
+    };
+  }, [mixer, mixerRef]);
+
+  // 播放唯一的 walking_man clip（走路/跑步/静止靠 timeScale 区分）
+  useEffect(() => {
+    const clip = animations[0];
+    const action = clip && actions[clip.name];
+    if (!action) return;
+    action.play();
+    mixer.timeScale = 0; // 初始静止
+  }, [actions, animations, mixer]);
+
+  return <primitive object={playerModel} />;
+}

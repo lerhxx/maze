@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { MazeData, PathCell, PathDirection } from '../game/types';
 import { CELL_SCALE, Dierection } from '../constants/global';
@@ -351,11 +351,15 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       {/* 场景占用格：用 box 替代 grass，颜色 #D29E76 */}
       {/* <SceneGround cells={sceneGroundCells} /> */}
 
-      {/* 所有墙格底部：grass 贴地平铺 */}
-      <GrassCells cells={grassCells} />
+      {/* 所有墙格底部：grass 贴地平铺（Suspense 隔离：grass.glb 加载不阻塞其余场景） */}
+      {/* <Suspense fallback={null}> */}
+        <GrassCells cells={grassCells} />
+      {/* </Suspense> */}
 
       {/* 内部墙 → 樱花树（跳过被场景占用的格） */}
-      <InteriorTreesCells cells={interiorWallCells} occupiedCells={occupiedCells} />
+      {/* <Suspense fallback={null}> */}
+        <InteriorTreesCells cells={interiorWallCells} occupiedCells={occupiedCells} />
+      {/* </Suspense> */}
 
       {/* 场景放置点（Kilox / Huawei / Shopee + label） */}
       <ScenePlacements contentMap={contentMap} />
@@ -372,7 +376,9 @@ export function MazeEnvironment({ maze }: MazeEnvironmentProps) {
       ))}
 
       {/* 迷宫四边：樱花树贴边围绕（每格 1 棵，最高 1 cell 高度） */}
-      <PerimeterSakuraCells cells={perimeterSakuraCells} />
+      {/* <Suspense fallback={null}> */}
+        <PerimeterSakuraCells cells={perimeterSakuraCells} />
+      {/* </Suspense> */}
 
       {/* Exit Portal */}
       <ExitPortal x={(maze.exitCol + 0.5) * CELL_SCALE} z={(maze.exitRow + 0.5) * CELL_SCALE} />

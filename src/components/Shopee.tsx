@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 // import { useFrame } from '@react-three/fiber';
-import { useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-// import { CELL_SCALE } from '../constants/global';
 // import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
   type DescriptionId,
 } from '../state/sceneStore';
+import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
 const base = import.meta.env.BASE_URL;
 // const SHOPEE_URL = `${base}/models/shopee.glb`;
@@ -28,43 +27,6 @@ export interface ShopeeProps {
   pathCells?: Array<{ c: number; r: number }>;
 }
 
-/** 加载 glb 并归一化：最大边长 -> targetSize，底部对齐 y=0
- *  有动画时用 SkeletonUtils.clone 正确克隆骨架 */
-function useNormalizedModel(
-  url: string,
-  targetSize: number,
-  castShadow: boolean,
-  receiveShadow: boolean,
-): { clonedScene: THREE.Object3D; normalizeScale: number; offsetY: number; animations: THREE.AnimationClip[] } {
-  const gltf = useGLTF(url);
-  return useMemo(() => {
-    // 有动画 → SkeletonUtils.clone 保留骨架绑定
-    const cloned = gltf.animations && gltf.animations.length > 0
-      ? SkeletonUtils.clone(gltf.scene) as THREE.Object3D
-      : (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
-    cloned.updateWorldMatrix(true, false);
-    const box = new THREE.Box3().setFromObject(cloned);
-    let scale = 1;
-    let yOff = 0;
-    if (!box.isEmpty()) {
-      const s = new THREE.Vector3();
-      box.getSize(s);
-      const maxDim = Math.max(s.x, Math.max(s.y, s.z));
-      if (maxDim > 0) scale = targetSize / maxDim;
-      yOff = -box.min.y * scale;
-    }
-    cloned.traverse((obj) => {
-      const maybeMesh = obj as unknown as { isMesh?: boolean };
-      if (maybeMesh.isMesh) {
-        const m = obj as unknown as THREE.Mesh;
-        m.castShadow = castShadow;
-        m.receiveShadow = receiveShadow;
-      }
-    });
-    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff, animations: gltf.animations ?? [] };
-  }, [gltf.scene, gltf.animations, targetSize, castShadow, receiveShadow]);
-}
-
 export function Shopee({
   position,
   size = 1,
@@ -75,6 +37,10 @@ export function Shopee({
   descriptionId = 'Shopee',
   pathCells,
 }: ShopeeProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  // 懒加载：玩家靠近后才真正请求 shopee-scene-90.glb（约 8MB）
+  const active = useNearbyActive(groupRef, SCENE_MODEL_LOAD_RADIUS);
+
   useEffect(() => {
     if (!pathCells || pathCells.length === 0) return;
     const keySet = new Set(pathCells.map(({ c, r }) => `${c},${r}`));
@@ -83,9 +49,6 @@ export function Shopee({
   }, [descriptionId, pathCells]);
 
   useSceneBubble(descriptionId);
-
-  // 主模型 shopee-logo：保留原有的 0.3 缩放 + offsetY=0.35
-  const shopee = useNormalizedModel(SHOPEE_URL, size, castShadow, receiveShadow);
 
   // shebi / hebi：归一化到 size 的 0.35，底部贴地
   // const shebi = useNormalizedModel(SHEBI_URL, size * 0.35, castShadow, receiveShadow);
@@ -129,13 +92,13 @@ export function Shopee({
   // });
 
   return (
-    <group position={position} rotation={[0, rotationY, 0]}>
-      {/* 主 shopee-logo */}
-      <primitive
-        object={shopee.clonedScene}
-        position={[0.0, 0.32, 0.01]}
-        scale={shopee.normalizeScale * 1.38}
-      />
+    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
+      {/* 主 shopee-logo（懒加载：靠近后才挂载下载） */}
+      {active && (
+        <Suspense fallback={null}>
+          <ShopeeModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
+        </Suspense>
+      )}
 
       {/* shebi：左侧（减小 X 偏移确保在墙格内） */}
       {/* <primitive
@@ -169,6 +132,27 @@ export function Shopee({
         position={[-0.02, 0.1, 0.5]}
       /> */}
     </group>
+  );
+}
+
+/** 真正下载 + 挂载 glb 的内层组件（放在 Suspense 内，加载期间不影响其余场景） */
+function ShopeeModel({
+  size,
+  castShadow,
+  receiveShadow,
+}: {
+  size: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+}) {
+  const shopee = useNormalizedModel(SHOPEE_URL, size, castShadow, receiveShadow);
+
+  return (
+    <primitive
+      object={shopee.clonedScene}
+      position={[0.0, 0.32, 0.01]}
+      scale={shopee.normalizeScale * 1.38}
+    />
   );
 }
 

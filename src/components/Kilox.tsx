@@ -1,15 +1,14 @@
-import { useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 // import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-// import { CELL_SCALE } from '../constants/global';
 // import { EnvelopeLine } from './EnvelopeLine2';
 import {
   sceneState,
   useSceneBubble,
   type DescriptionId,
 } from '../state/sceneStore';
+import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
+import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 
 const base = import.meta.env.BASE_URL;
 const KILOX_URL = `${base}/models/kilox-90.glb`;
@@ -27,43 +26,6 @@ export interface KiloxProps {
   pathCells?: Array<{ c: number; r: number }>;
 }
 
-/** 加载 glb 并归一化：最大边长 -> targetSize，底部对齐 y=0
- *  有动画时用 SkeletonUtils.clone 正确克隆骨架 */
-function useNormalizedModel(
-  url: string,
-  targetSize: number,
-  castShadow: boolean,
-  receiveShadow: boolean,
-): { clonedScene: THREE.Object3D; normalizeScale: number; offsetY: number; animations: THREE.AnimationClip[] } {
-  const gltf = useGLTF(url);
-  return useMemo(() => {
-    // 有动画 → SkeletonUtils.clone 保留骨架绑定
-    const cloned = gltf.animations && gltf.animations.length > 0
-      ? SkeletonUtils.clone(gltf.scene) as THREE.Object3D
-      : (gltf.scene as THREE.Object3D).clone(true) as THREE.Object3D;
-    cloned.updateWorldMatrix(true, false);
-    const box = new THREE.Box3().setFromObject(cloned);
-    let scale = 1;
-    let yOff = 0;
-    if (!box.isEmpty()) {
-      const s = new THREE.Vector3();
-      box.getSize(s);
-      const maxDim = Math.max(s.x, Math.max(s.y, s.z));
-      if (maxDim > 0) scale = targetSize / maxDim;
-      yOff = -box.min.y * scale;
-    }
-    cloned.traverse((obj) => {
-      const maybeMesh = obj as unknown as { isMesh?: boolean };
-      if (maybeMesh.isMesh) {
-        const m = obj as unknown as THREE.Mesh;
-        m.castShadow = castShadow;
-        m.receiveShadow = receiveShadow;
-      }
-    });
-    return { clonedScene: cloned, normalizeScale: scale, offsetY: yOff, animations: gltf.animations ?? [] };
-  }, [gltf.scene, gltf.animations, targetSize, castShadow, receiveShadow]);
-}
-
 export function Kilox({
   position,
   size = 1,
@@ -74,6 +36,10 @@ export function Kilox({
   descriptionId = 'Kilox',
   pathCells,
 }: KiloxProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  // 懒加载：玩家靠近后才真正请求 kilox-90.glb（约 8MB）
+  const active = useNearbyActive(groupRef, SCENE_MODEL_LOAD_RADIUS);
+
   // 注册场景道路格
   useEffect(() => {
     if (!pathCells || pathCells.length === 0) return;
@@ -83,9 +49,6 @@ export function Kilox({
   }, [descriptionId, pathCells]);
 
   useSceneBubble(descriptionId);
-
-  // 主模型 kilox：与 Shopee 一致，归一化到 size 并放大悬浮展示
-  const kilox = useNormalizedModel(KILOX_URL, size, castShadow, receiveShadow);
 
   // kilox 动画：AnimationMixer 播放 clips（当前模型无动画，留作后续换模型用）
   // const kiloxMixerRef = useRef<THREE.AnimationMixer | null>(null);
@@ -108,13 +71,13 @@ export function Kilox({
   // });
 
   return (
-    <group position={position} rotation={[0, rotationY, 0]}>
-      {/* 主模型 kilox */}
-      <primitive
-        object={kilox.clonedScene}
-        position={[0.0, 0.36, 0]}
-        scale={kilox.normalizeScale * 1.35}
-      />
+    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
+      {/* 主模型 kilox（懒加载：靠近后才挂载下载） */}
+      {active && (
+        <Suspense fallback={null}>
+          <KiloxModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
+        </Suspense>
+      )}
 
       {/* {label && (
         <Text
@@ -135,6 +98,27 @@ export function Kilox({
         position={[-0.02, 0.1, 0.4]}
       /> */}
     </group>
+  );
+}
+
+/** 真正下载 + 挂载 glb 的内层组件（放在 Suspense 内，加载期间不影响其余场景） */
+function KiloxModel({
+  size,
+  castShadow,
+  receiveShadow,
+}: {
+  size: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+}) {
+  const kilox = useNormalizedModel(KILOX_URL, size, castShadow, receiveShadow);
+
+  return (
+    <primitive
+      object={kilox.clonedScene}
+      position={[0.0, 0.36, 0]}
+      scale={kilox.normalizeScale * 1.35}
+    />
   );
 }
 
