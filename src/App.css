@@ -159,6 +159,80 @@ body,
   z-index: 10;
 }
 
+/* Capture (offscreen render) */
+
+.hud-capture {
+  position: absolute;
+  top: 118px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.capture-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: rgba(10, 10, 20, 0.65);
+  border: 1px solid rgba(120, 130, 200, 0.25);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  color: #ddd;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.capture-btn:hover:not(:disabled) {
+  background: rgba(40, 46, 90, 0.8);
+  border-color: rgba(150, 160, 240, 0.5);
+}
+
+.capture-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.capture-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.capture-btn-icon {
+  font-size: 14px;
+}
+
+.capture-status {
+  max-width: 220px;
+  padding: 5px 10px;
+  background: rgba(10, 10, 20, 0.7);
+  border: 1px solid rgba(120, 130, 200, 0.25);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  line-height: 1.5;
+  color: #9fe8c0;
+  word-break: break-all;
+}
+
+.capture-status.error {
+  color: #ff9d9d;
+  border-color: rgba(220, 120, 120, 0.4);
+}
+
+.capture-preview {
+  display: block;
+  width: 160px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 130, 200, 0.3);
+  background: rgba(10, 10, 20, 0.7);
+}
+
 .hud-timer {
   position: absolute;
   top: 18px;

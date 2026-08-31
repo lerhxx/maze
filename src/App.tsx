@@ -34,16 +34,16 @@ function App() {
     setStatus('won');
 
     // Update best record
-    setBestRecords((prev) => {
-      const current = prev[difficulty];
-      if (!current || elapsed < current.seconds) {
-        return {
-          ...prev,
-          [difficulty]: { seconds: elapsed, date: new Date().toLocaleDateString('zh-CN') },
-        };
-      }
-      return prev;
-    });
+    // setBestRecords((prev) => {
+    //   const current = prev[difficulty];
+    //   if (!current || elapsed < current.seconds) {
+    //     return {
+    //       ...prev,
+    //       [difficulty]: { seconds: elapsed, date: new Date().toLocaleDateString('zh-CN') },
+    //     };
+    //   }
+    //   return prev;
+    // });
   };
 
   const backToMenu = () => {
@@ -160,7 +160,7 @@ function WinScreen({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const isNewRecord = bestRecord && bestRecord.seconds === elapsed;
+  // const isNewRecord = bestRecord && bestRecord.seconds === elapsed;
 
   return (
     <div className="win-screen">
@@ -172,7 +172,7 @@ function WinScreen({
             <span className="win-stat-label">用时</span>
             <span className="win-stat-value">{formatTime(elapsed)}</span>
           </div>
-          <div className="win-stat">
+          {/* <div className="win-stat">
             <span className="win-stat-label">难度</span>
             <span className="win-stat-value">{DIFFICULTY_LABELS[difficulty]}</span>
           </div>
@@ -181,9 +181,9 @@ function WinScreen({
             <span className="win-stat-value">
               {bestRecord ? formatTime(bestRecord.seconds) : '--:--'}
             </span>
-          </div>
+          </div> */}
         </div>
-        {isNewRecord && <div className="win-new-record">✨ 新纪录！</div>}
+        {/* {isNewRecord && <div className="win-new-record">✨ 新纪录！</div>} */}
         <div className="win-actions">
           <button className="win-btn primary" onClick={onPlayAgain}>
             再来一局

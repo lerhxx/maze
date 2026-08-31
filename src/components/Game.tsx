@@ -11,6 +11,7 @@ import { CELL_SCALE } from '../constants/global';
 import { OrbitControls } from '@react-three/drei';
 import { Perf } from 'r3f-perf';
 import { sceneState, useSceneState, type DescriptionId } from '../state/sceneStore';
+import { setRendererContext } from '../utils/offscreenRender';
 
 interface MazeGameProps {
   maze: MazeData;
@@ -118,7 +119,7 @@ function SceneContent({
   gameRef: React.MutableRefObject<GameRef>;
   onWin: () => void;
 }) {
-  const { scene } = useThree();
+  const { scene, gl, camera } = useThree();
 
   // Set fog and background color
   // useEffect(() => {
@@ -129,6 +130,12 @@ function SceneContent({
   useEffect(() => {
     scene.background = new THREE.Color('#ffffff');
   }, [scene])
+
+  // 把渲染上下文暴露给 HUD 的「绘制」按钮，用于离屏渲染导出图片
+  useEffect(() => {
+    setRendererContext({ gl, scene, camera });
+    return () => setRendererContext(null);
+  }, [gl, scene, camera]);
 
   return (
     <>
