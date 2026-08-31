@@ -124,6 +124,7 @@ import {
 } from '../state/sceneStore';
 import { SCENE_MODEL_LOAD_RADIUS } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
+import { CELL_SCALE } from '../constants/global'
 
 const base = import.meta.env.BASE_URL;
 const Amiba_URL = `${base}/models/amiba-95.glb`;
@@ -149,7 +150,7 @@ export function Amiba({
 }: AmibaProps) {
   const groupRef = useRef<THREE.Group>(null);
   // 懒加载：玩家靠近后才真正请求 amiba-95.glb（约 8MB）
-  const active = useNearbyActive(groupRef, SCENE_MODEL_LOAD_RADIUS);
+  const active = useNearbyActive(groupRef, CELL_SCALE * 10);
 
   // 注册场景事件：pathCells → 描述 id
   // （LightBeam 的环触发靠 getIdForCell 反查，不注册则走进光柱环不会弹窗）

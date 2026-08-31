@@ -80,7 +80,7 @@ export function MazeGame({ maze, onWin, onReady }: MazeGameProps) {
     <div className="game-container">
       <Canvas
         camera={{
-          fov: 55,
+          fov: 75,
           near: 0.1,
           far: 50,
           // 初始位置：起点后上方（首帧会被跟随相机覆盖）
