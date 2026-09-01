@@ -28,8 +28,8 @@ class SceneState {
   activeSceneId: DescriptionId | null = null;
   /** 弹窗当前打开的描述 id */
   openId: DescriptionId | null = null;
-  /** 玩家世界坐标（Player 每帧更新；LightBeam 等组件读取做距离检测） */
-  playerPos = { x: 0, z: 0 };
+  /** 玩家世界坐标 + 朝向（Player 每帧更新；LightBeam / 花瓣等组件读取做距离检测） */
+  playerPos = { x: 0, z: 0, yaw: 0 };
   /** 所有注册场景 */
   private registrations: Map<DescriptionId, SceneRegistration> = new Map();
   /** 道路 key → 场景 id 的反查表 */

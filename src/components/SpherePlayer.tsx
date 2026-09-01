@@ -303,9 +303,10 @@ export function Player({ maze, gameRef, onWin }: PlayerProps) {
       inBeamRef.current = insideBeamKey;
     }
 
-    // --- 更新玩家世界坐标到 store（LightBeam 发光检测用） ---
+    // --- 更新玩家世界坐标到 store（LightBeam 发光检测 / 樱花花瓣生成用） ---
     sceneState.playerPos.x = posRef.current.x;
     sceneState.playerPos.z = posRef.current.z;
+    sceneState.playerPos.yaw = yawRef.current;
 
     // --- 更新场景道路格（用于气泡触发） ---
     updatePlayerPathCell(

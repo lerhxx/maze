@@ -1,11 +1,17 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useGraph } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { CELL_SCALE, modelUrl } from '../constants/global';
+import { sakuraTrees, type SakuraTree } from '../state/sakuraTrees';
 
 // GLTF 资产位置
 const SAKURA_URL = modelUrl('sakura-tree.glb');
+
+/** 树冠中心位于树高的这个比例处（樱花树树冠偏上） */
+const CROWN_CENTER_RATIO = 0.72;
+/** 树冠半径取水平半宽的这个比例（模型包围盒偏保守，收一点更贴合） */
+const CROWN_RADIUS_RATIO = 0.85;
 
 /** (c,r) 种子的确定性 LCG 伪随机 */
 export function createLcg(c: number, r: number) {
@@ -61,9 +67,14 @@ export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
   const gltf = useGLTF(SAKURA_URL);
   const { nodes, materials } = useGraph(gltf.scene as unknown as THREE.Object3D);
 
-  const { meshParts, normalizeScale } = useMemo<{
+  const { meshParts, normalizeScale, modelSize, modelMinY, modelMaxY } = useMemo<{
     meshParts: Array<{ mesh: THREE.Mesh; localMatrix: THREE.Matrix4 }>;
     normalizeScale: number;
+    /** 模型原始包围盒尺寸（未缩放） */
+    modelSize: THREE.Vector3;
+    /** 模型原始包围盒的 y 下界 / 上界（未缩放） */
+    modelMinY: number;
+    modelMaxY: number;
   }>(() => {
     const result: Array<{ mesh: THREE.Mesh; localMatrix: THREE.Matrix4 }> = [];
     const sceneBox = new THREE.Box3();
@@ -85,14 +96,20 @@ export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
         }
       }
     });
+    const size = new THREE.Vector3();
     let scale = 1;
     if (!sceneBox.isEmpty()) {
-      const size = new THREE.Vector3();
       sceneBox.getSize(size);
       const maxDim = Math.max(size.x, Math.max(size.y, size.z));
       if (maxDim > 0) scale = CELL_SCALE * 2 / maxDim;
     }
-    return { meshParts: result, normalizeScale: scale };
+    return {
+      meshParts: result,
+      normalizeScale: scale,
+      modelSize: size,
+      modelMinY: sceneBox.isEmpty() ? 0 : sceneBox.min.y,
+      modelMaxY: sceneBox.isEmpty() ? 1 : sceneBox.max.y,
+    };
   }, [gltf.scene, nodes]);
 
   // 预计算每格的树实例（1 主 + 4~9 小）
@@ -152,6 +169,24 @@ export function PerimeterSakuraCells({ cells }: SakuraWallCellsProps) {
       inst.instanceMatrix.needsUpdate = true;
     }
   }, [treeInstances, meshParts]);
+
+  // 把每棵树的树冠登记到注册表：SakuraPetals 只从「玩家视线内」的树上落花瓣
+  useEffect(() => {
+    const trees: SakuraTree[] = treeInstances.map((t) => {
+      // 模型的 y 区间乘以实例缩放 → 这棵树实际的树底 / 树顶高度
+      const base = modelMinY * t.scale;
+      const top = modelMaxY * t.scale;
+      const height = Math.max(top - base, 0.01);
+      const halfWidth = (Math.max(modelSize.x, modelSize.z) / 2) * t.scale;
+      return {
+        x: t.x,
+        z: t.z,
+        crownY: base + height * CROWN_CENTER_RATIO,
+        crownRadius: Math.max(halfWidth, height * 0.25) * CROWN_RADIUS_RATIO,
+      };
+    });
+    return sakuraTrees.register(trees);
+  }, [treeInstances, modelSize, modelMinY, modelMaxY]);
 
   void materials;
 

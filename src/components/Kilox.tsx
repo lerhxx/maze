@@ -11,7 +11,7 @@ import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 import { ModelFallback } from './ModelFallback';
 
-const KILOX_URL = modelUrl('kilox-90.glb');
+const KILOX_URL = modelUrl('kilox-col-75.glb');
 
 export interface KiloxProps {
   position: [number, number, number];

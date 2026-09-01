@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { GameRef, MazeData } from '../game/types';
 import { MazeEnvironment } from './Maze';
 import { Player } from './SpherePlayer';
+import { PlayerSakuraPetals } from './SakuraPetals';
 import { HUD } from './HUD';
 import { Description } from './Description';
 import { AMBIENT_INTENSITY, AMBIENT_COLOR } from '../constants/light';
@@ -147,6 +148,8 @@ function SceneContent({
       <ambientLight intensity={AMBIENT_INTENSITY} color={AMBIENT_COLOR} position={[10, 10, 10]} />
       <MazeEnvironment maze={maze} />
       <Player maze={maze} gameRef={gameRef} onWin={onWin} />
+      {/* 玩家前方不定时飘落的樱花花瓣 */}
+      <PlayerSakuraPetals />
     </>
   );
 }
