@@ -3,6 +3,9 @@
 interface ImportMetaEnv {
   /** 是否通过 jsDelivr CDN 加载大模型 glb（开发环境可切换） */
   readonly VITE_CDN?: string;
+
+  /** 是否使用鼠标控制视角 */
+  readonly VITE_USE_MOUSE?: string;
 }
 
 interface ImportMeta {

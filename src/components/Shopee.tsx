@@ -9,9 +9,10 @@ import {
 } from '../state/sceneStore';
 import { SCENE_MODEL_LOAD_RADIUS, modelUrl } from '../constants/global';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
+import { ModelFallback } from './ModelFallback';
 
 // const SHOPEE_URL = modelUrl('shopee.glb');
-const SHOPEE_URL = modelUrl('shopee-scene-90.glb');
+const SHOPEE_URL = modelUrl('shopee-scene-col-75.glb');
 // const SHEBI_URL = modelUrl('shebi.glb');
 // const HEBI_URL = modelUrl('hebi.glb');
 
@@ -92,7 +93,7 @@ export function Shopee({
     <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
       {/* 主 shopee-logo（懒加载：靠近后才挂载下载） */}
       {active && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelFallback size={size} />}>
           <ShopeeModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
         </Suspense>
       )}

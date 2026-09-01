@@ -24,7 +24,7 @@ export const Dierection = {
 }
 export type DierectionType = typeof Dierection[keyof typeof Dierection];
 
-export const USE_MOUSE = true;
+export const USE_MOUSE = import.meta.env.VITE_USE_MOUSE === 'true';
 
 /**
  * 场景（canvas）的暖光底色。
@@ -37,9 +37,6 @@ export const USE_MOUSE = true;
  */
 export const WARM_LIGHT_BG = '#f6e6d6';
 
-/** true: 用 Three.js 程序化草地（GrassCellsProcedural）；false: 用 grass.glb 模型 */
-export const IS_PURE_GRASS = false;
-
 /**
  * 场景大模型（8MB 级 glb）的懒加载触发半径（世界单位）。
  * 玩家走到该范围内才开始下载并挂载对应模型，避免开局一次性拉取几十 MB。
@@ -47,7 +44,7 @@ export const IS_PURE_GRASS = false;
 export const SCENE_MODEL_LOAD_RADIUS = 8 * CELL_SCALE;
 
 /** true: 显示海洋颜色调试面板（运行时可调整深水/浅水/泡沫颜色） */
-export const OCEAN_DEBUG = false;
+export const OCEAN_DEBUG = import.meta.env.VITE_OCEAN_DEBUG === 'true';
 
 /**
  * 是否通过 jsDelivr CDN 加载大模型 glb。

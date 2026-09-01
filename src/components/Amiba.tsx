@@ -124,6 +124,7 @@ import {
 } from '../state/sceneStore';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 import { CELL_SCALE, modelUrl } from '../constants/global'
+import { ModelFallback } from './ModelFallback'
 
 const Amiba_URL = modelUrl('amiba-95.glb');
 
@@ -166,7 +167,7 @@ export function Amiba({
       rotation={[0, rotationY, 0]}
     >
       {active && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelFallback size={size} color="#ff8c42" />}>
           <AmibaModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
         </Suspense>
       )}

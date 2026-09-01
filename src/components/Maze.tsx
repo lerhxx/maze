@@ -4,7 +4,7 @@ import type { MazeData, PathCell, PathDirection } from '../game/types';
 import { CELL_SCALE, Dierection } from '../constants/global';
 import type { DierectionType } from '../constants/global';
 import { ExitPortal } from './ExitPortal';
-import { GrassCellsRenderer as GrassCells } from './GrassCells';
+import GrassCells from './GrassCells';
 import {
   InteriorTreesCells,
   PerimeterSakuraCells,

@@ -8,9 +8,10 @@ import {
   type DescriptionId,
 } from '../state/sceneStore';
 import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
+import { ModelFallback } from './ModelFallback';
 
 // const HUAWEI_URL = `${import.meta.env.BASE_URL}/models/huawei.glb`;
-const HUAWEI_URL = modelUrl('huawei-scene-90.glb');
+const HUAWEI_URL = modelUrl('huawei-scene-col-75.glb');
 
 export interface HuaweiProps {
   position: [number, number, number];
@@ -52,7 +53,7 @@ export function Huawei({
     >
       {/* 主模型（懒加载：靠近后才挂载下载） */}
       {active && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelFallback size={size} />}>
           <HuaweiModel size={size} castShadow={castShadow} receiveShadow={receiveShadow} />
         </Suspense>
       )}
