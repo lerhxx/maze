@@ -126,7 +126,7 @@ import { useNearbyActive, useNormalizedModel } from '../hooks/useLazyModel';
 import { CELL_SCALE, modelUrl } from '../constants/global'
 import { ModelFallback } from './ModelFallback'
 
-const Amiba_URL = modelUrl('amiba-95.glb');
+const Amiba_URL = modelUrl('amiba-col-75.glb');
 
 export interface AmibaProps {
   position: [number, number, number];
